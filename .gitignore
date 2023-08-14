@@ -1,3 +1,13 @@
+blast_DBs/
+cdd_rps_db/
+hmmscan_DBs/
+taxdump/
+.DS_Store
+**/.DS_Store
+mmseqs_DBs/
+pfam_32_db/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

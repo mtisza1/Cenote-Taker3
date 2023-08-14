@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cenotetaker3"
+version = "3.0.0"
+authors = [
+  { name="Mike Tisza", email="michael.tisza@gmail.com" },
+]
+description = "Discover and annotate the virome."
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",    
+    "biopython",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"cenotetaker3" = ["*.sbt", "*.sh"]
+
+[tool.setuptools]
+script-files = ["src/cenote/cenote_main.sh", "src/cenote/dummy_template.sbt"]
+
+[project.scripts]  
+cenotetaker3 = "cenote:cenotetaker3"
+
+[project.urls]
+"Homepage" = "https://github.com/cmmr/Cenote-Taker3"
+"Bug Tracker" = "https://github.com/cmmr/Cenote-Taker3/issues"

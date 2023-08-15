@@ -27,17 +27,19 @@ phan_tab_directory = sys.argv[2]
 
 prod_tab_directory = sys.argv[3]
 
-first_pyhmmer_table = sys.argv[4]
+virion_pyhmmer_table = sys.argv[4]
 
-second_pyhmmer_table = sys.argv[5]
+comm_pyhmmer_table = sys.argv[5]
 
-phrogs_pyhmmer_table = sys.argv[6]
+rep_pyhmmer_table = sys.argv[6]
 
 mmseqs_CDD_table = sys.argv[7]
 
 viral_cdds_list = sys.argv[8]
 
 out_dir = sys.argv[9]
+
+hall_type = sys.argv[10]
 
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
@@ -126,79 +128,79 @@ except:
 
 ## load and parse table for first pyhmmer search (hallmarks)
 try:
-    first_pyh_df = pd.read_csv(first_pyhmmer_table, sep = "\t")[['ORFquery', 'target']]
+    virion_ppyh_df = pd.read_csv(virion_pyhmmer_table, sep = "\t")[['ORFquery', 'target']]
 
 
-    first_pyh_df["gene_name"] = first_pyh_df["ORFquery"]
+    virion_ppyh_df["gene_name"] = virion_ppyh_df["ORFquery"]
 
-    first_pyh_df["slash_pos"] = first_pyh_df["target"].str.find("/")
-    first_pyh_df["fdash_pos"] = first_pyh_df["target"].str.find("-")
+    virion_ppyh_df["slash_pos"] = virion_ppyh_df["target"].str.find("/")
+    virion_ppyh_df["fdash_pos"] = virion_ppyh_df["target"].str.find("-")
 
 
-    first_pyh_df["evidence_acession"] = first_pyh_df.apply(
+    virion_ppyh_df["evidence_acession"] = virion_ppyh_df.apply(
         lambda x: x["target"][x["slash_pos"]+1:x["fdash_pos"]], axis = 1)
 
-    first_pyh_df["evidence_description"] = first_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
+    virion_ppyh_df["evidence_description"] = virion_ppyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
 
-    first_pyh_df = first_pyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
+    virion_ppyh_df = virion_ppyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
 
-    first_pyh_df['Evidence_source'] = 'hallmark_hmm'
+    virion_ppyh_df['Evidence_source'] = 'hallmark_hmm'
 
-    first_pyh_df['vscore_category'] = 'common_virus'
+    virion_ppyh_df['vscore_category'] = 'common_virus'
 
 except:
     print("nope")
-    first_pyh_df = pd.DataFrame()
+    virion_ppyh_df = pd.DataFrame()
 
 ## load and parse table for second pyhmmer search (other virus gene HMMs)
 try:
-    second_pyh_df = pd.read_csv(second_pyhmmer_table, sep = "\t")[['ORFquery', 'target']]
+    comm_pyh_df = pd.read_csv(comm_pyhmmer_table, sep = "\t")[['ORFquery', 'target']]
 
-    second_pyh_df["gene_name"] = second_pyh_df["ORFquery"]
+    comm_pyh_df["gene_name"] = comm_pyh_df["ORFquery"]
 
-    second_pyh_df["slash_pos"] = second_pyh_df["target"].str.find("/")
-    second_pyh_df["fdash_pos"] = second_pyh_df["target"].str.find("-")
+    comm_pyh_df["slash_pos"] = comm_pyh_df["target"].str.find("/")
+    comm_pyh_df["fdash_pos"] = comm_pyh_df["target"].str.find("-")
 
 
-    second_pyh_df["evidence_acession"] = second_pyh_df.apply(
+    comm_pyh_df["evidence_acession"] = comm_pyh_df.apply(
         lambda x: x["target"][x["slash_pos"]+1:x["fdash_pos"]], axis = 1)
 
-    second_pyh_df["evidence_description"] = second_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
+    comm_pyh_df["evidence_description"] = comm_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
 
-    second_pyh_df = second_pyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
+    comm_pyh_df = comm_pyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
 
-    second_pyh_df['Evidence_source'] = 'common_virus_hmm'
+    comm_pyh_df['Evidence_source'] = 'common_virus_hmm'
 
-    second_pyh_df['vscore_category'] = 'common_virus'
+    comm_pyh_df['vscore_category'] = 'common_virus'
 
 except:
     print("nope")
-    second_pyh_df = pd.DataFrame()
+    comm_pyh_df = pd.DataFrame()
 
-## load and parse table for phrogs HMM search
+## load and parse table for rep HMM search
 try:
-    phrogs_pyh_df = pd.read_csv(phrogs_pyhmmer_table, sep = "\t")[['ORFquery', 'target']]
+    rep_pyh_df = pd.read_csv(rep_pyhmmer_table, sep = "\t")[['ORFquery', 'target']]
 
-    phrogs_pyh_df["gene_name"] = phrogs_pyh_df["ORFquery"]
+    rep_pyh_df["gene_name"] = rep_pyh_df["ORFquery"]
 
-    phrogs_pyh_df["slash_pos"] = phrogs_pyh_df["target"].str.find("/")
-    phrogs_pyh_df["fdash_pos"] = phrogs_pyh_df["target"].str.find("-")
+    rep_pyh_df["slash_pos"] = rep_pyh_df["target"].str.find("/")
+    rep_pyh_df["fdash_pos"] = rep_pyh_df["target"].str.find("-")
 
 
-    phrogs_pyh_df["evidence_acession"] = phrogs_pyh_df.apply(
+    rep_pyh_df["evidence_acession"] = rep_pyh_df.apply(
         lambda x: x["target"][x["slash_pos"]+1:x["fdash_pos"]], axis = 1)
 
-    phrogs_pyh_df["evidence_description"] = phrogs_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
+    rep_pyh_df["evidence_description"] = rep_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
 
-    phrogs_pyh_df = phrogs_pyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
+    rep_pyh_df = rep_pyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
 
-    phrogs_pyh_df['Evidence_source'] = 'phrogs_hmm'
+    rep_pyh_df['Evidence_source'] = 'rep_hall_hmm'
 
-    phrogs_pyh_df['vscore_category'] = 'common_virus'
+    rep_pyh_df['vscore_category'] = 'common_virus'
 
 except:
     print("nope")
-    phrogs_pyh_df = pd.DataFrame()
+    rep_pyh_df = pd.DataFrame()
 
 
 ## load and parse table for mmseqs CDD search
@@ -236,14 +238,14 @@ comb_cdd_df['vscore_category'] = np.where(comb_cdd_df['vscore_category'].isna(),
 ## combine pyhmmer and mmseqs tables with contig/gene table for all gene annotations
 gene_ann_list = []
 
-if not first_pyh_df.empty:
-    gene_ann_list.append(first_pyh_df)
+if not virion_ppyh_df.empty:
+    gene_ann_list.append(virion_ppyh_df)
 
-if not second_pyh_df.empty:
-    gene_ann_list.append(second_pyh_df)
+if not comm_pyh_df.empty:
+    gene_ann_list.append(comm_pyh_df)
 
-if not phrogs_pyh_df.empty:
-    gene_ann_list.append(phrogs_pyh_df)
+if not rep_pyh_df.empty:
+    gene_ann_list.append(rep_pyh_df)
 
 if not comb_cdd_df.empty:
     gene_ann_list.append(comb_cdd_df)
@@ -285,7 +287,7 @@ grouped_df = contig_gene_df.query("contig_length >= 10000")\
 try:
     for name, group in grouped_df:
 
-        prune_chunks(name, group, fig_out_dir)
+        prune_chunks(name, group, fig_out_dir, hall_type)
     
 except:
     print("No non-DTR virus contigs >= 10,000 nt. So pruning will not happen")

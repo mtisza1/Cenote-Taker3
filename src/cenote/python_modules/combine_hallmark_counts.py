@@ -26,6 +26,9 @@ hallmark_type = sys.argv[4]
 
 out_dir = sys.argv[5]
 
+if not os.path.isdir(out_dir):
+    os.makedirs(out_dir)
+    
 ## load and parse hit count files
 try:
     virion_dt = pd.read_csv(virion_count_file, sep = "\t", names=['contig', 'virion_hit_count'], skiprows = 1)

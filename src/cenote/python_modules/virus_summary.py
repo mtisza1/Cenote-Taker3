@@ -11,23 +11,24 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
 
-# length/repeat file
-length_table = sys.argv[1]
+
 # ct name/original name file
-name_table = sys.argv[2]
+name_table = sys.argv[1]
 # gene to contig file
-gene_to_contig_table = sys.argv[3]
+gene_to_contig_table = sys.argv[2]
 # taxonomy file
-tax_table = sys.argv[4]
-
-sequin_dir = sys.argv[5]
-
-run_title = sys.argv[6]
+tax_table = sys.argv[3]
+# directory for sequin related files
+sequin_dir = sys.argv[4]
+# run title
+run_title = sys.argv[5]
+# prodigal gcodes file
+prod_gcodes = sys.argv[6]
+# phanotate file
+phan_file = sys.argv[7]
 
 try:
     main_annot_df = pd.read_csv(gene_to_contig_table, sep = "\t")
-
-    length_df = pd.read_csv(length_table, sep = "\t")
 
     name_df = pd.read_csv(name_table, sep = "\t", names=['contig', 'input_name'])
 
@@ -36,14 +37,37 @@ try:
 except:
     print("couldn't load files for summary")
 
+# phanotate and prodigal
+if os.path.isfile(phan_file) and os.path.getsize(phan_file) > 0:
+    phan_df = pd.read_csv(phan_file, header = None, names = ['contig'])
+    phan_df['gcode'] = 11
+    phan_df['ORFcaller'] = 'phanotate'
+else:
+    phan_df = pd.DataFrame()
+
+if os.path.isfile(prod_gcodes) and os.path.getsize(prod_gcodes) > 0:
+    prod_df = pd.read_csv(prod_gcodes, header = None, sep = "\t", names = ['contig', 'gcode'])
+    prod_df['ORFcaller'] = 'prodigal'
+else:
+    prod_df = pd.DataFrame()
+
+## combine phanotate and prodigal table
+gcode_list = []
+
+for df in phan_df, prod_df:
+    if not df.empty:
+        gcode_list.append(df)
+
+try:
+    gcode_df = pd.concat(gcode_list, ignore_index=True)
+except:
+    print("nope")
+
 
 ## merge all files
-merge_df = pd.merge(main_annot_df, length_df, on = ["contig", "dtr_seq"], how = "left")
-
-merge_df = pd.merge(merge_df, name_df, on = "contig", how = "left")
-
+merge_df = pd.merge(main_annot_df, name_df, on = "contig", how = "left")
 merge_df = pd.merge(merge_df, tax_df, on = ["contig", "chunk_name"], how = "left")
-
+merge_df = pd.merge(merge_df, gcode_df, on = "contig", how = "left")
 
 merge_df['taxon'] = merge_df['taxon'].fillna("unclassified virus")
 
@@ -74,40 +98,48 @@ for seq_file in finalseq_list:
             chunkq = None
         fields = re.findall(r'\[.*?\]', seq_record.description)
         organism = re.search(r'\[organism=(.*?)\]', fields[0]).group(1)
-        gcode = re.search(r'\[gcode=(.*?)\]', fields[1]).group(1)
-        desc_list.append([contig, chunkq, organism, gcode])
+        #gcode = re.search(r'\[gcode=(.*?)\]', fields[1]).group(1)
+        desc_list.append([contig, chunkq, organism])
     except:
         print("except")
 
-desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism", "genetic_code"])
+desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
 
 org_info_df = pd.merge(merge_df, desc_df, on = ["contig", "chunk_name"], how = "left")
 
 
 ## make summary of virus seqs
-grouped_df = org_info_df.groupby(['contig', 'contig_length', 'dtr_seq', 'chunk_name', 'chunk_length',
-                     'itr_seq', 'input_name', 'taxon', 'taxonomy_hierarchy', 'taxon_level',
-                     'avg_hallmark_AAI_to_ref', 'organism', 'genetic_code'], dropna = False)
+grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'dtr_seq', 'chunk_name', 'chunk_length',
+                     'input_name', 'taxon', 'taxonomy_hierarchy', 'taxon_level',
+                     'avg_hallmark_AAI_to_ref', 'organism', 'gcode', 'ORFcaller'], dropna = False)
 
 summary_list = []
 for name, group in grouped_df:
+    if "Chunk" in str(name[3]):
+        outname = "@".join([name[0], name[3]])
+    else:
+        outname = name[0]
     gene_count = group['gene_name'].nunique()
-    hallmark_count = group.query("Evidence_source == 'hallmark_hmm'")['gene_name'].nunique()
-    hallmark_list = '|'.join(
+    vir_hall_count = group.query("Evidence_source == 'hallmark_hmm'")['gene_name'].nunique()
+    vir_hall_list = '|'.join(
         list(group.query("Evidence_source == 'hallmark_hmm'")['evidence_description'])
         ).replace("-", " ")
-    if name[2]:
+    rep_hall_count = group.query("Evidence_source == 'rep_hall_hmm'")['gene_name'].nunique()
+    rep_hall_list = '|'.join(
+        list(group.query("Evidence_source == 'rep_hall_hmm'")['evidence_description'])
+        ).replace("-", " ")
+    if all(c in "ATCG" for c in str(name[2])):
         end_type = "DTR"
-    elif name[5]:
-        end_type = "ITR"
     else:
         end_type = "None"
         
     if gene_count >= 1:
-        summary_list.append([name[0], name[6], name[11], name[1], end_type, gene_count, hallmark_count, hallmark_list, name[8]])
+        summary_list.append([outname, name[5], name[10], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
+                             vir_hall_list, rep_hall_list, name[7], name[12]])
 
-summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 
-                                                 'contig_length', 'end_feature', 'gene_count', 'hallmark_count', 'hallmark_genes', 'taxonomy_hierarchy'])
+summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'contig_length', 
+                                                 'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',
+                                                 'virion_hallmark_genes', 'rep_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
 
 parentpath = Path(sequin_dir).parents[0]
 

@@ -13,7 +13,7 @@ import math
 import collections
 import bisect
 
-def prune_chunks(name, group, out_dir1):
+def prune_chunks(name, group, out_dir1, hallmark_arg):
 
     #print(name + "in prune")
 
@@ -245,8 +245,14 @@ def prune_chunks(name, group, out_dir1):
     chunk_df.to_csv(chunk_sum_file, sep = "\t", index = False)
 
     ###Find optimal location on plot to place hallmark marker
-    vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
-        .query("Evidence_source == 'hallmark_hmm'")
+    if str(hallmark_arg) == 'virion':
+        vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
+            .query("Evidence_source == 'hallmark_hmm'")
+    ## will need to update this statement for rna hallmarks
+    else:
+        vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
+            .query("Evidence_source == 'hallmark_hmm' | Evidence_source == 'rep_hall_hmm'")
+        
     vir_bait_table['mean'] = round(vir_bait_table[['gene_start', 'gene_stop']].mean(axis=1))
     vir_bait_table_med_list = list(vir_bait_table['mean'])
 

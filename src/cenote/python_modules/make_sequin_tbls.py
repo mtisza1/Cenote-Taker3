@@ -156,7 +156,7 @@ for name, seq_group in chunk_grouped_df:
         first_c = tbl_first_second(row['gene_start'], row['gene_stop'], row['gene_orient'])[0]
         second_c = tbl_first_second(row['gene_start'], row['gene_stop'], row['gene_orient'])[1]
 
-        if row['Evidence_source'] in {'hallmark_hmm', 'common_virus_hmm', 'phrogs_hmm'}: #my hmms
+        if row['Evidence_source'] in {'hallmark_hmm', 'rep_hall_hmm', 'common_virus_hmm', 'phrogs_hmm'}: #my hmms
             typeq = "CDS"
             tagstr = ("protein_id" + "\tlcl|" + row['gene_name'])
             productstr = re.sub("-", " ", row['evidence_description'])

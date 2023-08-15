@@ -51,8 +51,45 @@ if [ "${READS}" != "none" ] ; then
 	done
 fi
 
+## check databases exist in specified path
+if [ -z ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m ] ; then
+	echo "couldn't find virion hallmark hmm DB at ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m"
+	echo "exiting"
+	exit
+fi
+
+if [ -z ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m ] ; then
+	echo "couldn't find replication hallmark hmm DB at ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m"
+	echo "exiting"
+	exit
+fi
+
+if [ -z ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m ] ; then
+	echo "couldn't find common virus hmm DB at ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m"
+	echo "exiting"
+	exit
+fi
+
+if [ -z ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m ] ; then
+	echo "couldn't find phrogs subset hmm DB at ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m"
+	echo "exiting"
+	exit
+fi
 
 
+
+if [ -z ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB ] ; then
+	echo "couldn't find mmseqs2 tax DB at ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB"
+	echo "exiting"
+	exit
+fi
+
+
+if [ -z ${C_DBS}/mmseqs_DBs/CDD ] ; then
+	echo "couldn't find mmseqs2 tax DB at ${C_DBS}/mmseqs_DBs/CDD"
+	echo "exiting"
+	exit
+fi
 
 MDYT=$( date +"%m-%d-%y---%T" )
 echo -e "${BBlack}time update: configuring run directory  ${MDYT}${Color_Off}"
@@ -67,12 +104,6 @@ else
 	exit
 fi
 
-#if [ -s ${original_contigs} ] ; then 
-#	original_con_base=$( basename $original_contigs )  
-#else  
-#	echo "${original_contigs} not found"
-#	exit
-#fi
 
 # Making output folder
 if [ ! -d "$run_title" ]; then
@@ -189,10 +220,10 @@ if [ -n "$SPLIT_ORIG_AAs" ] ; then
 	echo -e "${BRed}time update: running pyhmmer on all ORFs  ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_virion\
-	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU
+	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-8
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_rep\
-	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU
+	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-8
 
 	python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
 	  ${TEMP_DIR}/orig_pyhmmer_rep ${HALLMARK_MINIMUM} ${HALL_TYPE} ${TEMP_DIR}
@@ -540,16 +571,20 @@ if [ -n "$SPLIT_REORF_AAs" ] ; then
 	echo -e "${BCyan}time update: running pyhmmer hallmarkdb on reORFs ${MDYT}${Color_Off}"
 
 
-	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU
+	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/virion_reORF_pyhmmer\
+	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-8
 	#-#-# add rep hallmark hmmscan
+	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/rep_reORF_pyhmmer\
+	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-8
 
-	if [ -s ${TEMP_DIR}/reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
-		tail -n+2 ${TEMP_DIR}/reORF_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/reORF_pyhmmer/hit_this_round1.txt
+	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] && 
+	   [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+		awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
 
 		echo "$SPLIT_REORF_AAs" | while read AA ; do
 			BASE_AA=$( basename $AA )
-			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/reORF_pyhmmer/hit_this_round1.txt $AA > ${TEMP_DIR}/reORF_pyhmmer2_split/${BASE_AA%.faa}.no1.faa
+			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt $AA > ${TEMP_DIR}/reORF_pyhmmer2_split/${BASE_AA%.faa}.no1.faa
 		done
 
 	else
@@ -574,15 +609,15 @@ if [ -n "$SECOND_REORF_AAs" ] ; then
 	echo -e "${BCyan}time update: running pyhmmer additional annotation HMMs on reORFs ${MDYT}${Color_Off}"
 
 
-	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer2_split ${TEMP_DIR}/second_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m $CPU
+	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer2_split ${TEMP_DIR}/comm_reORF_pyhmmer\
+	  ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m $CPU 1e-5
 
 
-	if [ -s ${TEMP_DIR}/second_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
-		tail -n+2 ${TEMP_DIR}/second_reORF_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/second_reORF_pyhmmer/hit_this_round1.txt
+	if [ -s ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+		tail -n+2 ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/comm_reORF_pyhmmer/hit_this_round1.txt
 
 		echo "$SECOND_REORF_AAs" | while read AA ; do
-			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/second_reORF_pyhmmer/hit_this_round1.txt $AA >> ${TEMP_DIR}/reORF_mmseqs_combined/all_AA_seqs.no2.faa
+			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/comm_reORF_pyhmmer/hit_this_round1.txt $AA >> ${TEMP_DIR}/reORF_mmseqs_combined/all_AA_seqs.no2.faa
 		done
 
 	else
@@ -635,9 +670,10 @@ if [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] && [ -s ${C_D
 	echo -e "${BCyan}time update: assessing each gene on all contigs and scoring contigs for virusness  ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/assess_virus_genes1.py ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv\
-	  ${TEMP_DIR}/reORF/phan_split ${TEMP_DIR}/reORF/prod_split ${TEMP_DIR}/reORF_pyhmmer/pyhmmer_report_AAs.tsv\
-	  ${TEMP_DIR}/second_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv\
-	  ${TEMP_DIR}/reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv ${C_DBS}/viral_cdds_and_pfams_191028.txt ${TEMP_DIR}/assess_prune
+	  ${TEMP_DIR}/reORF/phan_split ${TEMP_DIR}/reORF/prod_split ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+	  ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+	  ${TEMP_DIR}/reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv ${C_DBS}/viral_cdds_and_pfams_191028.txt \
+	  ${TEMP_DIR}/assess_prune ${HALL_TYPE}
 
 else
 	echo "couldn't start assess and prune script"
@@ -723,7 +759,7 @@ if [ "${PHROGS}" == "True" ]  && [ -s ${TEMP_DIR}/hypothetical_proteins.after_ch
 
 
 		python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_phrogs_split ${TEMP_DIR}/phrogs_pyhmmer\
-		  ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m $CPU
+		  ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m $CPU 1e-3
 
 		if [ -s ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
 			tail -n+2 ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/phrogs_pyhmmer/hit_this_round1.txt
@@ -832,7 +868,7 @@ fi
 
 ## redo hallmark taxonomy on reORF viruses/chunks
 
-if [ -s ${TEMP_DIR}/reORF_pyhmmer/hit_this_round1.txt ] ; then
+if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: reassessing taxonomy on final virus seqs ${MDYT}${Color_Off}"
@@ -841,7 +877,7 @@ if [ -s ${TEMP_DIR}/reORF_pyhmmer/hit_this_round1.txt ] ; then
 		mkdir ${TEMP_DIR}/final_taxonomy
 	fi
 
-	seqkit grep --quiet -f ${TEMP_DIR}/reORF_pyhmmer/hit_this_round1.txt\
+	seqkit grep --quiet -f ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt\
 	  ${TEMP_DIR}/reORF/reORFcalled_all.faa > ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa
 
 	if [ -s ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa ] ; then
@@ -907,14 +943,12 @@ if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: Making genome map and sequin files ${MDYT}${Color_Off}"
-	echo "fsa"
    	## sequin fsa
 
    	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_fsas.py ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta\
    	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv\
    	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps
 
-	echo "fsa done"
 else
 
 	echo "couldn't find files to make fsa's"
@@ -922,13 +956,11 @@ fi
 
 if [ -s ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ] ; then
 
-	echo "tbl"
 	## sequin tbl
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_tbls.py ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv\
 	  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.tRNAscan.tsv ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${run_title}/sequin_and_genome_maps
 
-	echo "tbl done"
 else
 	echo "couldn't find annotation file for tbl generation"
 
@@ -937,7 +969,6 @@ fi
 ## sequin cmt
 FSA_FILES=$( find ${run_title}/sequin_and_genome_maps -type f -name "*fsa" )
 
-echo "cmt"
 if [ -n "$FSA_FILES" ] ; then
 	for REC in $FSA_FILES ; do
 		if [ -s ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv ] ; then
@@ -956,14 +987,11 @@ if [ -n "$FSA_FILES" ] ; then
 		echo "URL	https://github.com/mtisza1/Cenote-Taker2" >> ${REC%.fsa}.cmt	
 	done
 fi
-echo "cmt done"
 
 ## run table2asn
 if [ -s ${TEMPLATE_FILE} ] ; then
-	echo "tbl2asn"
 	tbl2asn -V vb -t ${TEMPLATE_FILE} -X C -p ${run_title}/sequin_and_genome_maps >\
-	${run_title}/sequin_and_genome_maps/tbl2asn.log 2>&1
-	echo "tbl2asn done"
+	  ${run_title}/sequin_and_genome_maps/tbl2asn.log 2>&1
 else
 	echo "could not find template file for tbl2asn"
 fi
@@ -975,9 +1003,10 @@ if [ -s ${run_title}/final_genes_to_contigs_annotation_summary.tsv ] ; then
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: Making virus summary table ${MDYT}${Color_Off}"
 
-	python ${CENOTE_SCRIPTS}/python_modules/virus_summary.py ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv\
-	  ${TEMP_DIR}/contig_name_map.tsv ${run_title}/final_genes_to_contigs_annotation_summary.tsv\
-	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv ${run_title}/sequin_and_genome_maps ${run_title}
+	python ${CENOTE_SCRIPTS}/python_modules/virus_summary.py ${TEMP_DIR}/contig_name_map.tsv \
+	  ${run_title}/final_genes_to_contigs_annotation_summary.tsv ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv \
+	  ${run_title}/sequin_and_genome_maps ${run_title} ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt\
+	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 
 else
 	echo "couldn't find files to make run summary"

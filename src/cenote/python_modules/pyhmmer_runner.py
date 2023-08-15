@@ -19,6 +19,9 @@ which_DB = sys.argv[3]
 
 CPUcount = sys.argv[4]
 
+evalue_cut = sys.argv[5]
+
+evalue_cut = float(evalue_cut)
 
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
@@ -63,7 +66,7 @@ with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
                 hmmscan_list.append([quer1, contig, target_name, full_seq_evalue, seq_pvalue])
 
 hmmscan_pools_df = pd.DataFrame(hmmscan_list, columns=["ORFquery", "contig", "target", "evalue", "pvalue"])\
-    .sort_values('evalue').drop_duplicates('ORFquery').query("evalue <= 1e-8")
+    .sort_values('evalue').drop_duplicates('ORFquery').query("evalue <= @evalue_cut")
 
 if not hmmscan_pools_df.empty:
     hmmscan_output_file = os.path.join(out_dir, "pyhmmer_report_AAs.tsv")

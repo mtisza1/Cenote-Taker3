@@ -89,3 +89,15 @@ bed_df = bed_df.drop('chunk_name', axis = 1)
 bed_file = os.path.join(out_dir, "prune_coords.bed")
 
 bed_df.to_csv(bed_file, sep = "\t", index = False, header = False)
+
+
+## hypothetical proteins names file
+
+hypo_terms = ['hypothetical protein', 'unnamed protein product', 'Predicted protein', 
+              'Uncharacterized protein', 'Domain of unknown function', '^gp']
+
+hypo_df = adjusted_gene_df['gene_name'][adjusted_gene_df['evidence_description'].str.contains('|'.join(hypo_terms))]
+
+hypo_file = os.path.join(out_dir, "hypothetical_proteins.after_chunk.txt")
+
+hypo_df.to_csv(hypo_file, sep = "\t", index = False, header = False)

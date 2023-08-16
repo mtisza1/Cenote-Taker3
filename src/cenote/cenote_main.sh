@@ -112,7 +112,7 @@ else
 	rand_dir=$( head /dev/urandom | tr -dc A-Za-z0-9 | head -c 3 ; echo '' )
 	DAY1=$( date +"%m-%d-%y" )
 	mv ${run_title}/ ${run_title}_old_${DAY1}_${rand_dir} 
-	mkdir "$run_title"
+	mkdir ${run_title}
 fi 
 
 if [ ! -d "${run_title}/ct2_tmp" ]; then
@@ -720,10 +720,10 @@ if [ -s ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv ] ; then
 	  sed 's/>.* />/g' > ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
 
 
-	awk '{OFS=FS="\t"}{ if \
-		($9 ~ /hypothetical protein/ || $9 ~ /unnamed protein product/ || $9 ~ /Predicted protein/ || \
-		$9 ~ /Uncharacterized protein/ || $9 ~ /Domain of unknown function/ ||$9 ~ /^gp/) \
-		{print $2} }' ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv > ${TEMP_DIR}/hypothetical_proteins.after_chunk.txt
+	#awk '{OFS=FS="\t"}{ if \
+	#	($9 ~ /hypothetical protein/ || $9 ~ /unnamed protein product/ || $9 ~ /Predicted protein/ || \
+	#	$9 ~ /Uncharacterized protein/ || $9 ~ /Domain of unknown function/ ||$9 ~ /^gp/) \
+	#	{print $2} }' ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv > ${TEMP_DIR}/hypothetical_proteins.after_chunk.txt
 
 else
 	echo "couldn't find ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv for adjust viruses"
@@ -986,6 +986,24 @@ if [ -n "$FSA_FILES" ] ; then
 		echo "Annotation Pipeline	Cenote-Taker2" >> ${REC%.fsa}.cmt
 		echo "URL	https://github.com/mtisza1/Cenote-Taker2" >> ${REC%.fsa}.cmt	
 	done
+fi
+
+## final virus seqs
+if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] ; then
+	seqkit replace --quiet -p "\s.+" ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta > ${run_title}/${run_title}_virus_sequences.fna
+
+else
+	echo "couldn't find file for final virus seqs"
+fi
+
+## final translated ORFs
+if [ -s ${run_title}/final_ORF_list.txt ] ; then
+	seqkit grep --quiet -f ${run_title}/final_ORF_list.txt\
+	  ${TEMP_DIR}/reORF/reORFcalled_all.faa | seqkit replace --quiet -p "\s.+" > ${run_title}/${run_title}_virus_AA.faa
+
+	rm ${run_title}/final_ORF_list.txt
+else
+	echo "couldn't find list of final ORFs"
 fi
 
 ## run table2asn

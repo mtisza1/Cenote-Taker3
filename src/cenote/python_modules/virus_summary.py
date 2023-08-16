@@ -137,7 +137,7 @@ for name, group in grouped_df:
         summary_list.append([outname, name[5], name[10], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
                              vir_hall_list, rep_hall_list, name[7], name[12]])
 
-summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'contig_length', 
+summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'virus_seq_length', 
                                                  'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',
                                                  'virion_hallmark_genes', 'rep_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
 
@@ -146,3 +146,13 @@ parentpath = Path(sequin_dir).parents[0]
 summary_out = os.path.join(parentpath, f"{run_title}_virus_summary.tsv")
 
 summary_df.to_csv(summary_out, sep = "\t", index = False)
+
+## pruning summary
+# where chunk names are not null:
+prune_sum_df = org_info_df[['contig', 'contig_length', 'chunk_length', 'chunk_name', 'chunk_start', 'chunk_stop']]\
+    .query("chunk_name == chunk_name").drop_duplicates()
+
+if not prune_sum_df.empty:
+    prune_out = os.path.join(parentpath, f"{run_title}_prune_summary.tsv")
+
+    prune_sum_df.to_csv(prune_out, sep = "\t", index = False)

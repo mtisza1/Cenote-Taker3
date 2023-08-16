@@ -119,6 +119,13 @@ final_annotation_out = os.path.join(parentpath, "final_genes_to_contigs_annotati
 
 merged_df.to_csv(final_annotation_out, sep = "\t", index = False)
 
+## list of all ORFs to output in final
+ORF_df = merged_df['gene_name'][~merged_df['Evidence_source'].str.contains("tRNAscan-SE", na=False)]
+
+ORF_list_out = os.path.join(parentpath, "final_ORF_list.txt")
+
+ORF_df.to_csv(ORF_list_out, sep = "\t", index = False, header = False)
+
 
 ## need a chunk value for all viruses to properly group
 merged_df['chunk_name'] = merged_df['chunk_name'].fillna("nochunk")

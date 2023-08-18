@@ -107,9 +107,12 @@ desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
 
 org_info_df = pd.merge(merge_df, desc_df, on = ["contig", "chunk_name"], how = "left")
 
+org_info_df['chunk_length'] = np.where(org_info_df['chunk_length'].isnull, 
+                                       org_info_df['contig_length'], 
+                                       org_info_df['chunk_length'])
 
 ## make summary of virus seqs
-grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'dtr_seq', 'chunk_name', 'chunk_length',
+grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'dtr_seq', 'chunk_name', 
                      'input_name', 'taxon', 'taxonomy_hierarchy', 'taxon_level',
                      'avg_hallmark_AAI_to_ref', 'organism', 'gcode', 'ORFcaller'], dropna = False)
 
@@ -134,8 +137,8 @@ for name, group in grouped_df:
         end_type = "None"
         
     if gene_count >= 1:
-        summary_list.append([outname, name[5], name[10], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
-                             vir_hall_list, rep_hall_list, name[7], name[12]])
+        summary_list.append([outname, name[4], name[9], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
+                             vir_hall_list, rep_hall_list, name[6], name[11]])
 
 summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'virus_seq_length', 
                                                  'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',

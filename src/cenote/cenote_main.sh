@@ -104,15 +104,15 @@ fi
 
 
 ### Making output folder
-if [ ! -d "$run_title" ]; then
-	mkdir "$run_title"
-else
+#if [ ! -d "$run_title" ]; then
+#	mkdir "$run_title"
+#else
 	## instead of overwriting previous run
-	rand_dir=$( head /dev/urandom | tr -dc A-Za-z0-9 | head -c 3 ; echo '' )
-	DAY1=$( date +"%m-%d-%y" )
-	mv ${run_title}/ ${run_title}_old_${DAY1}_${rand_dir} 
-	mkdir ${run_title}
-fi 
+#	rand_dir=$( head /dev/urandom | tr -dc A-Za-z0-9 | head -c 3 ; echo '' )
+#	DAY1=$( date +"%m-%d-%y" )
+#	mv ${run_title}/ ${run_title}_old_${DAY1}_${rand_dir} 
+#	mkdir ${run_title}
+#fi 
 
 if [ ! -d "${run_title}/ct2_tmp" ]; then
 	mkdir ${run_title}/ct2_tmp

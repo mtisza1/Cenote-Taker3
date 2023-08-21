@@ -7,6 +7,9 @@ from pathlib import Path
 from Bio import SeqIO
 import time
 from datetime import timedelta
+import random
+import string
+import re
 
 
 def str2bool(v):
@@ -187,6 +190,7 @@ def cenotetaker3():
     optional_args.add_argument("--phrogs", dest="PHROGS", type=str2bool, default="True", 
                             help='Default: True -- Use PHROG HMMs to add annotations? See github repo for DB download \
                                 instructions')
+    optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="True", help='use snakemake file (instead of bash)?')
 
 
     args = parser.parse_args()
@@ -265,13 +269,76 @@ def cenotetaker3():
         quit()
 
 
+    ## check run_title suitability
+    if re.search(r'^[a-zA-Z0-9_]+$', str(args.run_title)) and \
+        len(str(args.run_title)) <= 18:
+        print(str(args.run_title))
+    else:
+        print(f"{str(args.run_title)} is not a valid name for the run title ( -r argument)")
+        print( " the run title needs to be only letters, numbers and underscores (_) and \
+              18 characters or less. Exiting.")
+        quit()
 
-    subprocess.call(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
-                    str(args.original_contigs),str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
-                    str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
-                    str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
-                    str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
-                    str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS)])
+    ## make out directory (rename any existing directory)
+    if not os.path.isdir(str(args.run_title)):
+        os.makedirs(str(args.run_title))
+    else:
+        randID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        os.rename(str(args.run_title), f"{str(args.run_title)}_old_{randID}")
+        os.makedirs(str(args.run_title))
+
+
+    if args.SMK == True:
+         ## making config file from arguments
+         config_smk = (
+            f"CENOTE_SCRIPTS: {str(cenote_script_path)}\n"
+            f"original_contigs: {str(args.original_contigs)}\n"
+            f"run_title: {str(args.run_title)}\n"
+            f"PROPHAGE: {str(args.PROPHAGE)}\n"
+            f"CPU: {str(args.CPU)}\n"
+            f"VERSION: {str(__version__)}\n"
+            f"ANNOTATION_MODE: {str(args.ANNOTATION_MODE)}\n"
+            f"TEMPLATE_FILE: {str(args.template_file)}\n"
+            f"READS: {str(READS)}\n"
+            f"circ_length_cutoff: {str(args.circ_length_cutoff)}\n"
+            f"linear_length_cutoff: {str(args.linear_length_cutoff)}\n"
+            f"CIRC_MINIMUM_DOMAINS: {str(args.CIRC_MINIMUM_DOMAINS)}\n"
+            f"LIN_MINIMUM_DOMAINS: {str(args.linear_length_cutoff)}\n"
+            f"HALL_TYPE: {str(args.virus_domain_db)}\n"
+            f"C_DBS: {str(args.C_DBS)}\n"
+            f"WRAP: {str(args.WRAP)}\n"
+            f"PHROGS: {str(args.PHROGS)}\n"
+         )
+
+         out_conf = os.path.join(str(args.run_title), "smk_config.yaml")
+         with open(out_conf, "w") as f:
+            f.write(config_smk)
+
+         print(config_smk)
+
+         SMK_FILE = os.path.join(cenote_script_path, "Snakefile")
+         smk_cmd = (
+            f"snakemake --snakefile {SMK_FILE} "
+            f"--directory {os.getcwd()} "
+            f"--cores {int(args.CPU)} "
+            f"--configfile {out_conf} "
+            f"--until aggregate"
+         )
+
+         try:
+             subprocess.run(smk_cmd, check=True, shell=True)
+         except:
+             print("couldn't run snakemake")
+        
+
+
+    else:
+        subprocess.call(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
+                        str(args.original_contigs), str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
+                        str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
+                        str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
+                        str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
+                        str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS)])
 
 
     ct_endtime = time.time()

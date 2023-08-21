@@ -1,0 +1,124 @@
+import os
+
+## set up temporary directory
+if not os.path.isdir(os.path.join(config["run_title"], "ct_tmp")):
+    os.makedirs(os.path.join(config["run_title"], "ct_tmp"))
+
+TEMP_DIR = os.path.join(config["run_title"], "ct_tmp")
+
+### setting universal minimum length
+if config["circ_length_cutoff"] > config["linear_length_cutoff"]:
+    LENGTH_MINIMUM = config["linear_length_cutoff"]
+else:
+    LENGTH_MINIMUM = config["circ_length_cutoff"]
+
+## more variables from config
+run_title = config["run_title"]
+CPU = config["CPU"]
+
+
+def find_files(directory, prefix, ext):
+    split_list = []
+    for split in os.listdir(directory):
+        if split.startswith(prefix) and split.endswith(ext):
+            f = os.path.join(directory, split)
+
+            if os.path.isfile(f) and os.path.getsize(f) > 0:
+                split_list.append(f)
+    try:
+        return split_list
+    except:
+        return ""
+
+def seqkit_splits(splits):
+    n=range(1,splits+1)
+    n000 = [f"{i:03d}" for i in n]
+    return n000
+
+rule filter_contig_length:
+    input:
+        og_contigs = config["original_contigs"]
+    params:
+        lmin = LENGTH_MINIMUM,
+        run = run_title
+    output:
+        filt_contigs = os.path.join(run_title, \
+            f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.fasta")
+    shell:
+        '''
+        seqkit seq --quiet -m {params.lmin} {input.og_contigs} |\
+            seqkit replace --quiet -p '^' -r {params.run}_{{nr}}@#@# |\
+            sed 's/@#@#/ /g' > {output.filt_contigs}
+        '''
+
+spl_og_dir = os.path.join(TEMP_DIR, "split_orig_contigs")
+
+checkpoint seq_split1:
+    input:
+        filt_contigs = os.path.join(run_title, \
+            f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.fasta")
+    params:
+        CPU = config["CPU"],
+        dir = os.path.join(TEMP_DIR, "split_orig_contigs")
+    output:
+        #split_fna = expand(os.path.join(spl_og_dir, run_title +\
+        #    ".contigs_over_" + str(LENGTH_MINIMUM) + "nt.part_{seqn}.fasta"), \
+        #    seqn=seqkit_splits(CPU), allow_missing=True),
+        newDir=directory(os.path.join(TEMP_DIR, "split_orig_contigs"))
+    shell:
+        '''
+        seqkit split --quiet -j {params.CPU} -p {params.CPU} -O \
+          {output.newDir} {input.filt_contigs}
+
+        '''
+
+
+checkpoint gather_outputs:
+    input: expand(os.path.join(spl_og_dir, run_title +\
+            ".contigs_over_" + str(LENGTH_MINIMUM) + "nt.part_{seqn}.fasta"), \
+            seqn=seqkit_splits(CPU), allow_missing=True)
+    output: os.path.join(spl_og_dir, 'non_empty.list')
+    run: 
+        with open(output, 'wt') as output_handle:
+            for input_file in input:
+                if os.path.exists(input_file) and os.path.getsize(input_file) > 0:
+                    output_handle.write(f"{input_file}\n")
+
+def get_split_outputs(wildcards):
+    # this makes the rest of the workflow wait for the checkpoint
+    chk_out = checkpoints.gather_outputs.get().output
+    with open(chk_out) as sample_lines:
+        seqn = [line.strip(".fasta").strip(f"{spl_og_dir}/{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_") for line in sample_lines]
+
+    return expand(os.path.join(spl_og_dir, run_title +\
+            ".contigs_over_" + str(LENGTH_MINIMUM) + "nt.part_{seqn}.fasta"), seqn=seqn)
+
+
+
+
+
+rule prodigal_og:
+    input:
+        split_fna = os.path.join(spl_og_dir, "{sample}.fasta")
+    output:
+        split_faa = os.path.join(spl_og_dir, "{sample}.prod.faa")
+
+    log:
+        os.path.join(spl_og_dir, "{sample}.prod.log")
+    shell:
+        "prodigal -a {output.split_faa} -i {input.split_fna} -p meta -q > {log} 2>&1"
+        #"echo {input.split_fna} > {output.split_faa}"
+
+
+def aggregate_input(wildcards):
+    checkpoint_output = checkpoints.seq_split1.get(**wildcards).output[0]
+    return expand(os.path.join(TEMP_DIR, "split_orig_contigs", "{sample}.fasta"),
+           sample=glob_wildcards(os.path.join(checkpoint_output, "{sample}.txt")).sample)
+
+rule aggregate:
+    input:
+        aggregate_input
+    output:
+        "final.txt"
+    shell:
+        "cat {input} > {output}"

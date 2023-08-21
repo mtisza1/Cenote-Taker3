@@ -94,13 +94,13 @@ echo -e "${BBlack}time update: configuring run directory  ${MDYT}${Color_Off}"
 
 
 ### checking validity of run_title
-if [[ "$run_title" =~ ^[a-zA-Z0-9_]+$ ]] && [ ${#run_title} -le 18 ] ; then 
-	echo $run_title ; 
-else
-	echo "$run_title is not a valid name for the run title ( -r argument)"
-	echo " the run title needs to be only letters, numbers and underscores (_) and 18 characters or less. Exiting."
-	exit
-fi
+#if [[ "$run_title" =~ ^[a-zA-Z0-9_]+$ ]] && [ ${#run_title} -le 18 ] ; then 
+#	echo $run_title ; 
+#else
+#	echo "$run_title is not a valid name for the run title ( -r argument)"
+#	echo " the run title needs to be only letters, numbers and underscores (_) and 18 characters or less. Exiting."
+#	exit
+#fi
 
 
 ### Making output folder

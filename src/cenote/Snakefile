@@ -12,6 +12,12 @@ if config["circ_length_cutoff"] > config["linear_length_cutoff"]:
 else:
     LENGTH_MINIMUM = config["circ_length_cutoff"]
 
+if config["CIRC_MINIMUM_DOMAINS"] >= config["LIN_MINIMUM_DOMAINS"]:
+	HALLMARK_MINIMUM = config["LIN_MINIMUM_DOMAINS"]
+else:
+	HALLMARK_MINIMUM = config["CIRC_MINIMUM_DOMAINS"]
+
+
 ## more variables from config
 run_title = config["run_title"]
 CPU = config["CPU"]
@@ -35,6 +41,23 @@ def seqkit_splits(splits):
     n000 = [f"{i:03d}" for i in n]
     return n000
 
+def get_split_outputs(wildcards):
+    # this makes the rest of the workflow wait for the checkpoint
+    chk_out = checkpoints.seq_split1.get(**wildcards).output[0]
+    SMP, = glob_wildcards(os.path.join(chk_out, "{sample}.fasta"))
+    return expand(os.path.join(chk_out, "{SAMPLE}.fasta"), SAMPLE=SMP)
+
+spl_og_dir = os.path.join(TEMP_DIR, "split_orig_contigs")
+spl_prod_dir = os.path.join(TEMP_DIR, "split_og_prod")
+
+
+###############
+#### rules ####
+###############
+rule all:
+    input:
+        orient_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.fasta")
+
 rule filter_contig_length:
     input:
         og_contigs = config["original_contigs"]
@@ -51,7 +74,7 @@ rule filter_contig_length:
             sed 's/@#@#/ /g' > {output.filt_contigs}
         '''
 
-spl_og_dir = os.path.join(TEMP_DIR, "split_orig_contigs")
+
 
 checkpoint seq_split1:
     input:
@@ -64,61 +87,209 @@ checkpoint seq_split1:
         #split_fna = expand(os.path.join(spl_og_dir, run_title +\
         #    ".contigs_over_" + str(LENGTH_MINIMUM) + "nt.part_{seqn}.fasta"), \
         #    seqn=seqkit_splits(CPU), allow_missing=True),
-        newDir=directory(os.path.join(TEMP_DIR, "split_orig_contigs"))
+        #directory(spl_og_dir)
+        split_fna = os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_" + "{seqn}.fasta")
     shell:
         '''
-        seqkit split --quiet -j {params.CPU} -p {params.CPU} -O \
-          {output.newDir} {input.filt_contigs}
-
+        seqkit split --quiet -j {params.CPU} -p {params.CPU} \
+          -O {params.dir} {input.filt_contigs}
+        
+        touch {output.split_fna}
         '''
-
-
-checkpoint gather_outputs:
-    input: expand(os.path.join(spl_og_dir, run_title +\
-            ".contigs_over_" + str(LENGTH_MINIMUM) + "nt.part_{seqn}.fasta"), \
-            seqn=seqkit_splits(CPU), allow_missing=True)
-    output: os.path.join(spl_og_dir, 'non_empty.list')
-    run: 
-        with open(output, 'wt') as output_handle:
-            for input_file in input:
-                if os.path.exists(input_file) and os.path.getsize(input_file) > 0:
-                    output_handle.write(f"{input_file}\n")
-
-def get_split_outputs(wildcards):
-    # this makes the rest of the workflow wait for the checkpoint
-    chk_out = checkpoints.gather_outputs.get().output
-    with open(chk_out) as sample_lines:
-        seqn = [line.strip(".fasta").strip(f"{spl_og_dir}/{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_") for line in sample_lines]
-
-    return expand(os.path.join(spl_og_dir, run_title +\
-            ".contigs_over_" + str(LENGTH_MINIMUM) + "nt.part_{seqn}.fasta"), seqn=seqn)
-
-
-
 
 
 rule prodigal_og:
     input:
-        split_fna = os.path.join(spl_og_dir, "{sample}.fasta")
+        #split_fna = [os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_{seqn}.fasta") for seqn in seqkit_splits(CPU)]
+        split_fna = os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_" + "{seqn}.fasta")
     output:
-        split_faa = os.path.join(spl_og_dir, "{sample}.prod.faa")
-
+        #split_faa = [os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_{seqn}.prod.faa") for seqn in seqkit_splits(CPU)]
+        split_faa = os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_" + "{seqn}.prod.faa")
     log:
-        os.path.join(spl_og_dir, "{sample}.prod.log")
+       #[os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_{seqn}.prod.log") for seqn in seqkit_splits(CPU)]
+       os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_" + "{seqn}.prod.log")
     shell:
-        "prodigal -a {output.split_faa} -i {input.split_fna} -p meta -q > {log} 2>&1"
-        #"echo {input.split_fna} > {output.split_faa}"
+        '''
+        if [ -s {input.split_fna} ] ; then
+            prodigal -a {output.split_faa} -i {input.split_fna} -p meta -q > {log} 2>&1
+        else
+            touch {output.split_faa}
+        fi
+        '''
 
 
-def aggregate_input(wildcards):
-    checkpoint_output = checkpoints.seq_split1.get(**wildcards).output[0]
-    return expand(os.path.join(TEMP_DIR, "split_orig_contigs", "{sample}.fasta"),
-           sample=glob_wildcards(os.path.join(checkpoint_output, "{sample}.txt")).sample)
-
-rule aggregate:
+rule pyhmmer_prodigal_og_vir:
     input:
-        aggregate_input
+        split_faa = [os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_{seqn}.prod.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        script_dir = config['CENOTE_SCRIPTS'],
+        CPU = config["CPU"],
+        indir = spl_og_dir,
+        virdir = os.path.join(TEMP_DIR, "orig_pyhmmer_virion"),
+        viriondb = os.path.join(config['C_DBS'], "hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m"),
+        evalue = "1e-8"
     output:
-        "final.txt"
+        vir_contig_hits = os.path.join(TEMP_DIR, "orig_pyhmmer_virion/contig_hit_count.tsv"),
+        vir_report = os.path.join(TEMP_DIR, "orig_pyhmmer_virion/pyhmmer_report_AAs.tsv"),
     shell:
-        "cat {input} > {output}"
+        '''
+        python {params.script_dir}/python_modules/pyhmmer_runner.py {params.indir} {params.virdir}\
+          {params.viriondb} {params.CPU} {params.evalue}
+        '''
+
+rule pyhmmer_prodigal_og_rep:
+    input:
+        split_faa = [os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_{seqn}.prod.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        script_dir = config['CENOTE_SCRIPTS'],
+        CPU = config["CPU"],
+        indir = spl_og_dir,
+        repdir = os.path.join(TEMP_DIR, "orig_pyhmmer_rep"),
+        repdb = os.path.join(config['C_DBS'], "hmmscan_DBs/virus_replication_clusters3.h3m"),
+        evalue = "1e-8"
+    output:
+        rep_contig_hits = os.path.join(TEMP_DIR, "orig_pyhmmer_rep/contig_hit_count.tsv"),
+        rep_report = os.path.join(TEMP_DIR, "orig_pyhmmer_rep/pyhmmer_report_AAs.tsv"),
+    shell:
+        '''
+        python {params.script_dir}/python_modules/pyhmmer_runner.py {params.indir} {params.repdir}\
+          {params.repdb} {params.CPU} {params.evalue}
+        '''
+
+rule pyhmmer_og_combine:
+    input:
+        rep_contig_hits = os.path.join(TEMP_DIR, "orig_pyhmmer_rep/contig_hit_count.tsv"),
+        rep_report = os.path.join(TEMP_DIR, "orig_pyhmmer_rep/pyhmmer_report_AAs.tsv"),
+        vir_contig_hits = os.path.join(TEMP_DIR, "orig_pyhmmer_virion/contig_hit_count.tsv"),
+        vir_report = os.path.join(TEMP_DIR, "orig_pyhmmer_virion/pyhmmer_report_AAs.tsv"),
+    params:
+        script_dir = config['CENOTE_SCRIPTS'],
+        virdir = os.path.join(TEMP_DIR, "orig_pyhmmer_virion"),
+        repdir = os.path.join(TEMP_DIR, "orig_pyhmmer_rep"),
+        hallmin = HALLMARK_MINIMUM,
+        htype = config['HALL_TYPE'],
+        temdir = TEMP_DIR
+    output:
+        keep_contigs = os.path.join(TEMP_DIR, "contigs_to_keep.txt"),
+        hm_contig_report = os.path.join(TEMP_DIR, "hallmarks_per_orig_contigs.tsv"),
+        hm_list_keep = os.path.join(TEMP_DIR, "hallmarks_for_keepcontigs1.txt")
+    shell:
+        '''
+        python {params.script_dir}/python_modules/combine_hallmark_counts.py {params.virdir}\
+          {params.repdir} {params.hallmin} {params.htype} {params.temdir}
+        '''
+
+
+rule get_hm_contigs:
+    input:
+        keep_contigs = os.path.join(TEMP_DIR, "contigs_to_keep.txt"),
+        filt_contigs = os.path.join(run_title, \
+            f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.fasta")
+    output:
+        hm_unp_contigs = os.path.join(TEMP_DIR, "unprocessed_hallmark_contigs.fasta")
+    shell:
+        '''
+        seqkit grep --quiet -f {input.keep_contigs} {input.filt_contigs} > {output.hm_unp_contigs}
+        '''
+
+rule terminal_repeats:
+    input:
+        hm_unp_contigs = os.path.join(TEMP_DIR, "unprocessed_hallmark_contigs.fasta")
+    params:
+        script_dir = config['CENOTE_SCRIPTS'],
+        wrap = config["WRAP"],
+        temdir = TEMP_DIR
+    output:
+        trim_TRs = os.path.join(TEMP_DIR, "trimmed_TRs_hallmark_contigs.fasta"),
+        tr_sum = os.path.join(TEMP_DIR, "hallmark_contigs_terminal_repeat_summary.tsv")
+    shell:
+        '''
+        python {params.script_dir}/python_modules/terminal_repeats.py\
+          {input.hm_unp_contigs} {params.temdir} {params.wrap}
+        '''
+
+rule rotator:
+    input:
+        trim_TRs = os.path.join(TEMP_DIR, "trimmed_TRs_hallmark_contigs.fasta"),
+        tr_sum = os.path.join(TEMP_DIR, "hallmark_contigs_terminal_repeat_summary.tsv")
+    params:
+        wrap = config["WRAP"],
+        temdir = TEMP_DIR
+    output:
+        orient_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.fasta")
+    shell:
+        '''
+        if [ {params.wrap} == "True" ] ; then
+
+            if [ ! -d "{params.temdir}/rotation" ]; then
+                mkdir {params.temdir}/rotation
+            fi
+
+            awk '{{OFS=FS="\t"}}{{ if (NR != 1 && $4 != "NA") {{print $1, $3}} }}'\
+            {params.temdir}/hallmark_contigs_terminal_repeat_summary.tsv |\
+            while read DTR_CONTIG TRIM_LENGTH ; do
+                seqkit grep --quiet -p "${{DTR_CONTIG}}" {params.temdir}/trimmed_TRs_hallmark_contigs.fasta |\
+                prodigal -a {params.temdir}/rotation/${{DTR_CONTIG}}.unrotated.faa -i /dev/stdin -c -p meta -q >/dev/null 2>&1
+                FWD_GENES=$( grep "^>" {params.temdir}/rotation/${{DTR_CONTIG}}.unrotated.faa | sed 's/ # /	/g' |\
+                    awk '{{FS=OFS="\t"}}{{if ($0 ~ "partial=00;start_type" && $4 == 1) {{print $4}} }}' | wc -l )
+                REV_GENES=$( grep "^>" {params.temdir}/rotation/${{DTR_CONTIG}}.unrotated.faa | sed 's/ # /	/g' |\
+                    awk '{{FS=OFS="\t"}}{{if ($0 ~ "partial=00;start_type" && $4 == -1) {{print $4}} }}' | wc -l )
+                if [ $FWD_GENES -ge $REV_GENES ] && [ $FWD_GENES -ge 1 ]; then
+                    START_BASE=$( grep "^>" {params.temdir}/rotation/${{DTR_CONTIG}}.unrotated.faa | sed 's/ # /	/g' |\
+                        awk '{{FS=OFS="\t"}}{{if ($0 ~ "partial=00;start_type" && $4 == 1) {{print $2, ($3-$2)}} }}' |\
+                        sort -rg -k2,2 | head -n1 | cut -f1 )
+                    seqkit grep --quiet -p "${{DTR_CONTIG}}" {params.temdir}/trimmed_TRs_hallmark_contigs.fasta |\
+                    seqkit restart --quiet -i ${{START_BASE}} > {params.temdir}/rotation/${{DTR_CONTIG}}.rotate.fasta
+                elif [ $REV_GENES -ge 1 ]; then
+                    seqkit grep --quiet -p "${{DTR_CONTIG}}" {params.temdir}/trimmed_TRs_hallmark_contigs.fasta |\
+                    seqkit seq --quiet -t DNA -r -p > {params.temdir}/rotation/${{DTR_CONTIG}}.rc.fna
+                    prodigal -a {params.temdir}/rotation/${{DTR_CONTIG}}.rc.faa -i {params.temdir}/rotation/${{DTR_CONTIG}}.rc.fna -p meta -q >/dev/null 2>&1
+                    RC_FWD_GENES=$( grep "^>" {params.temdir}/rotation/${{DTR_CONTIG}}.rc.faa | sed 's/ # /	/g' |\
+                        awk '{{FS=OFS="\t"}}{{if ($0 ~ "partial=00;start_type" && $4 == 1) {{print $4}} }}' | wc -l )
+                    if [ $RC_FWD_GENES -ge 1 ] ; then 
+                        START_BASE=$( grep "^>" {params.temdir}/rotation/${{DTR_CONTIG}}.rc.faa | sed 's/ # /	/g' |\
+                            awk '{{FS=OFS="\t"}}{{if ($0 ~ "partial=00;start_type" && $4 == 1) {{print $2, ($3-$2)}} }}' |\
+                            sort -rg -k2,2 | head -n1 | cut -f1 )
+                        cat {params.temdir}/rotation/${{DTR_CONTIG}}.rc.fna |\
+                        seqkit restart --quiet -i ${{START_BASE}} > {params.temdir}/rotation/${{DTR_CONTIG}}.rotate.fasta
+                    else
+                        echo "Can't find suitable ORF to set rotation of ${{DTR_CONTIG}} and will remain unrotated"
+                        seqkit grep --quiet -p "${{DTR_CONTIG}}" {params.temdir}/trimmed_TRs_hallmark_contigs.fasta > {params.temdir}/rotation/${{DTR_CONTIG}}.rotate.fasta
+                    fi
+                else
+                    echo "Can't find suitable ORF to set rotation of $nucl_fa and will remain unrotated"
+                    seqkit grep --quiet -p "${{DTR_CONTIG}}" {params.temdir}/trimmed_TRs_hallmark_contigs.fasta > {params.temdir}/rotation/${{DTR_CONTIG}}.rotate.fasta
+                fi
+            done
+
+            awk '{{OFS=FS="\t"}}{{ if (NR != 1 && $4 == "NA") {{print $1}} }}'\
+            {params.temdir}/hallmark_contigs_terminal_repeat_summary.tsv > {params.temdir}/hallmark_contigs_no_DTRS.txt
+
+            if [ -s {params.temdir}/hallmark_contigs_no_DTRS.txt ] ; then
+                seqkit grep --quiet -f {params.temdir}/hallmark_contigs_no_DTRS.txt\
+                {params.temdir}/trimmed_TRs_hallmark_contigs.fasta > {params.temdir}/hallmark_contigs_no_DTRS.fasta
+            fi
+
+            ALL_DTRS=$( find {params.temdir}/rotation -type f -name "*.rotate.fasta" )
+
+            if [ -n "$ALL_DTRS" ] ; then
+                echo "$ALL_DTRS" | while read SEQ ; do
+                    cat $SEQ
+                done > {params.temdir}/hallmark_contigs_with_DTRS.rotated.fasta
+            fi
+
+            if [ -s {params.temdir}/hallmark_contigs_with_DTRS.rotated.fasta ] ; then
+                cat {params.temdir}/hallmark_contigs_with_DTRS.rotated.fasta >> {params.temdir}/oriented_hallmark_contigs.fasta
+            fi
+
+            if [ -s {params.temdir}/hallmark_contigs_no_DTRS.fasta ] ; then
+                cat {params.temdir}/hallmark_contigs_no_DTRS.fasta >> {params.temdir}/oriented_hallmark_contigs.fasta
+            fi
+
+
+        else
+            echo "not wrapping"
+            
+            cp {params.temdir}/trimmed_TRs_hallmark_contigs.fasta {params.temdir}/oriented_hallmark_contigs.fasta
+        fi
+        '''

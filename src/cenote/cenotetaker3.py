@@ -191,6 +191,7 @@ def cenotetaker3():
                             help='Default: True -- Use PHROG HMMs to add annotations? See github repo for DB download \
                                 instructions')
     optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="True", help='use snakemake file (instead of bash)?')
+    optional_args.add_argument("--until", dest="UNTIL", type=str, default="all", help='run snakemake until')
 
 
     args = parser.parse_args()
@@ -322,7 +323,7 @@ def cenotetaker3():
             f"--directory {os.getcwd()} "
             f"--cores {int(args.CPU)} "
             f"--configfile {out_conf} "
-            f"--until aggregate"
+            f"--until {str(args.UNTIL)}"
          )
 
          try:

@@ -50,13 +50,18 @@ def get_split_outputs(wildcards):
 spl_og_dir = os.path.join(TEMP_DIR, "split_orig_contigs")
 spl_prod_dir = os.path.join(TEMP_DIR, "split_og_prod")
 
+wildcard_constraints:
+    seqn = "\d+"
 
 ###############
 #### rules ####
 ###############
 rule all:
     input:
-        orient_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.fasta")
+        assess_tab = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.tsv"),
+        hm_bed = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.hallmarks.bed"),
+        indiv_dir = directory(os.path.join(TEMP_DIR, "assess_prune/indiv_seqs"))
+
 
 rule filter_contig_length:
     input:
@@ -293,3 +298,416 @@ rule rotator:
             cp {params.temdir}/trimmed_TRs_hallmark_contigs.fasta {params.temdir}/oriented_hallmark_contigs.fasta
         fi
         '''
+
+rule mmseqs_blastp_hm_tax:
+    input:
+        hm_list_keep = os.path.join(TEMP_DIR, "hallmarks_for_keepcontigs1.txt"),
+        split_faa = [os.path.join(spl_og_dir, f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.part_{seqn}.prod.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        taxdb = os.path.join(config['C_DBS'], "mmseqs_DBs/refseq_virus_prot_taxDB"),
+        mm_temp = os.path.join(TEMP_DIR, "hallmark_tax/tmp")
+    threads:
+        int(CPU)
+    output:
+        hm_ORFs = os.path.join(TEMP_DIR, "hallmark_tax/orig_hallmark_genes.faa"),
+        hm_db = os.path.join(TEMP_DIR, "hallmark_tax/orig_hallmark_genesDB"),
+        mm_res = os.path.join(TEMP_DIR, "hallmark_tax/orig_hallmarks_resDB"),
+        mmseqs_tab = os.path.join(TEMP_DIR, "hallmark_tax/orig_hallmarks_align.tsv")
+    shell:
+        '''
+        seqkit grep --quiet -f {input.hm_list_keep}\
+          {input.split_faa} > {output.hm_ORFs}
+        
+        mmseqs createdb {output.hm_ORFs} {output.hm_db} -v 1
+
+        mmseqs search {output.hm_db} {params.taxdb} {output.mm_res} {params.mm_temp}\
+          -v 1 --start-sens 1 --sens-steps 3 -s 7
+
+        mmseqs convertalis {output.hm_db} {params.taxdb} {output.mm_res} {output.mmseqs_tab}\
+          --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
+        '''
+
+rule orfcaller_decision:
+    input:
+        mmseqs_tab = os.path.join(TEMP_DIR, "hallmark_tax/orig_hallmarks_align.tsv"),
+        tr_sum = os.path.join(TEMP_DIR, "hallmark_contigs_terminal_repeat_summary.tsv"),
+        keep_contigs = os.path.join(TEMP_DIR, "contigs_to_keep.txt")
+    params:
+        outdir = os.path.join(TEMP_DIR, "hallmark_tax"),
+        script_dir = config['CENOTE_SCRIPTS'],
+    output:
+        prod_seqs = os.path.join(TEMP_DIR, "hallmark_tax/prodigal_seqs1.txt"),
+        phan_seqs = os.path.join(TEMP_DIR, "hallmark_tax/phanotate_seqs1.txt")
+    shell:
+        '''
+        python {params.script_dir}/python_modules/orfcaller_decision1.py\
+          {input.mmseqs_tab} {input.tr_sum} {params.outdir}
+        '''
+
+rule taxed_seqs:
+    input:
+        prod_seqs = os.path.join(TEMP_DIR, "hallmark_tax/prodigal_seqs1.txt"),
+        phan_seqs = os.path.join(TEMP_DIR, "hallmark_tax/phanotate_seqs1.txt")
+    output:
+        taxed_seqs = os.path.join(TEMP_DIR, "hallmark_tax/taxed_seqs1.txt")
+    shell:
+        '''
+        if [ -s {output.phan_seqs} ] ; then
+            cat {output.phan_seqs} >> {output.taxed_seqs}
+        fi
+
+        if [ -s {output.prod_seqs} ] ; then
+            cat {output.prod_seqs} >> {output.taxed_seqs}
+        fi
+        if [ -s {output.taxed_seqs} ] ; then
+            grep -v -f {output.taxed_seqs} {input.keep_contigs} >> {output.prod_seqs}
+        fi
+        '''
+
+rule hm_contigs_grep_prod:
+    input:
+       prod_seqs = os.path.join(TEMP_DIR, "hallmark_tax/prodigal_seqs1.txt"),
+       orient_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.fasta")
+    output:
+        prod_contigs = os.path.join(TEMP_DIR, "reORF/oriented_hallmark_contigs.prodigal.fasta"),
+    shell:
+        '''
+        seqkit grep --quiet -f {input.prod_seqs} {input.orient_contigs} > {output.prod_contigs}
+        '''
+
+rule hm_contigs_split_prod:
+    input:
+        prod_contigs = os.path.join(TEMP_DIR, "reORF/oriented_hallmark_contigs.prodigal.fasta"),
+    params:
+        prod_split_dir = os.path.join(TEMP_DIR, "reORF/prod_split"),
+        CPU = CPU
+    output:
+        split_prod_contigs = os.path.join(TEMP_DIR, "reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.fasta")
+    shell:
+        '''
+        seqkit split --quiet -j {params.CPU} -p {params.CPU} -O {params.prod_split_dir} {input.prod_contigs}
+
+        touch {output.split_prod_contigs}
+        '''
+
+rule hm_contigs_prodigal:
+    input:
+        split_prod_contigs = os.path.join(TEMP_DIR, "reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.fasta")
+    output:
+        split_prod_faa = os.path.join(TEMP_DIR, "reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.prod.faa"),
+        split_prod_gff = os.path.join(TEMP_DIR, "reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.prod.gff")
+    log:
+       os.path.join(TEMP_DIR, "reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.prod.log")
+    shell:
+        '''
+        if [ -s {input.split_prod_contigs} ] ; then
+            prodigal -a {output.split_prod_faa} -i {input.split_prod_contigs}\
+              -f gff -o {output.split_prod_gff} -p meta -q > {log} 2>&1
+        else
+            touch {output.split_prod_faa}
+            touch {output.split_prod_gff}
+        fi
+        '''
+
+rule prod_gcode:
+    input:
+        prod_seqs = os.path.join(TEMP_DIR, "hallmark_tax/prodigal_seqs1.txt"),
+        split_prod_gff = os.path.join(TEMP_DIR, "reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.prod.gff")
+    output:
+        prod_gcodes = os.path.join(TEMP_DIR, "reORF/prod_split/contig_gcodes1.txt")
+    shell:
+        '''
+        if [ -s {input.prod_seqs} ] ; then
+            cat ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt | while read SEQ ; do
+                GCODE=$( grep -A1 "\"${{SEQ}}\"" {input.split_prod_gff} | tail -n1 |\
+                  sed 's/.*transl_table=\([0-9]\{{1,2\}}\).*/\1/' )
+                
+                echo -e "${{SEQ}}\t${{GCODE}}"
+            done > {output.prod_gcodes}
+        else
+            touch {output.prod_gcodes}
+        fi
+        '''
+
+rule hm_contigs_grep_phan:
+    input:
+       phan_seqs = os.path.join(TEMP_DIR, "hallmark_tax/phanotate_seqs1.txt"),
+       orient_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.fasta")
+    output:
+        phan_contigs = os.path.join(TEMP_DIR, "reORF/oriented_hallmark_contigs.phanotate.fasta"),
+    shell:
+        '''
+        seqkit grep --quiet -f {input.phan_seqs} {input.orient_contigs} > {output.phan_contigs}
+        '''
+
+rule hm_contigs_split_phan:
+    input:
+        phan_contigs = os.path.join(TEMP_DIR, "reORF/oriented_hallmark_contigs.phanotate.fasta"),
+    params:
+        phan_split_dir = os.path.join(TEMP_DIR, "reORF/phan_split"),
+        CPU = CPU
+    output:
+        split_phan_contigs = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.fasta")
+    shell:
+        '''
+        seqkit split --quiet -j {params.CPU} -p {params.CPU} -O {params.phan_split_dir} {input.phan_contigs}
+
+        touch {output.split_phan_contigs}
+        '''
+
+rule hm_contigs_phanotate:
+    input:
+        split_phan_contigs = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.fasta")
+    output:
+        split_phan_tsv = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.phan_genes.bad_fmt.tsv"),
+    log:
+       os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.prodigal.part_{seqn}.prod.log")
+    shell:
+        '''
+        if [ -s {input.split_phan_contigs} ] ; then
+            phanotate.py -f tabular {input.split_phan_contigs} -o {output.split_phan_tsv} > {log} 2>&1
+        else
+            touch {output.split_phan_tsv}
+        fi
+        '''
+
+rule phan_to_bed:
+    input:
+        split_phan_tsv = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.phan_genes.bad_fmt.tsv"),
+    params:
+        script_dir = config['CENOTE_SCRIPTS'],
+    output:
+        split_phan_bed = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.phan_genes.bed")
+    shell:
+        '''
+        if [ -s {input.split_phan_tsv} ] ; then
+            awk '{{OFS=FS="\t"}}{{ if ($1 !~ /^#/) \
+              {{ if ($2>$1) {{print $4, ($1-1), $2, $4"_"NR, $5, $3}}\
+              else {{print $4, ($2-1), $1, $4"_"NR, $5, $3}} }} }}'\
+              {input.split_phan_tsv} > {output.split_phan_bed}
+        else
+            touch {output.split_phan_bed}
+        fi
+        '''
+
+rule bed_to_gene:
+    input:
+        split_phan_contigs = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.fasta"),
+        split_phan_bed = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.phan_genes.bed")
+    output:
+        split_phan_nORF = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.phan_genes.fna"),
+    shell:
+        '''
+        if [ -s {input.split_phan_contigs} ] && [ -s {input.split_phan_bed} ] ; then
+            bedtools getfasta -fi {input.split_phan_contigs} -bed {input.split_phan_bed}\
+              -fo {output.split_phan_nORF} -s -nameOnly
+        else
+            touch {output.split_phan_nORF}
+        fi
+        '''
+
+rule phan_gene_translate:
+    input:
+        split_phan_nORF = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.phan_genes.fna"),
+    output:
+        split_phan_aORF = os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.faa")
+    log:
+        os.path.join(TEMP_DIR, "reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.log")
+    shell:
+        '''
+        if [ -s {input.split_phan_nORF} ] ; then
+            seqkit translate --quiet -x -T 11 {input.split_phan_nORF}\
+              -o {output.split_phan_aORF} > {log} 2>&1
+        else
+            touch {output.split_phan_aORF}
+        fi
+        '''
+
+rule cat_reORF:
+    input:
+        split_phan_aORF = [os.path.join(TEMP_DIR, f"reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.faa") for seqn in seqkit_splits(CPU)],
+        split_prod_faa = [os.path.join(TEMP_DIR, f"reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.prod.faa") for seqn in seqkit_splits(CPU)]
+    output:
+        all_reORF = os.path.join(TEMP_DIR, "reORF/reORFcalled_all.faa")
+    shell:
+        '''
+        cat {input.split_phan_aORF} {input.split_prod_faa} | sed 's/(.*//g' > {output.all_reORF}
+        '''
+
+rule split_reORF:
+    input:
+        all_reORF = os.path.join(TEMP_DIR, "reORF/reORFcalled_all.faa")
+    params:
+        reORF_split_dir = os.path.join(TEMP_DIR, "reORF_pyhmmer1_split"),
+        CPU = CPU
+    output:
+        split_reORF = os.path.join(TEMP_DIR, "reORF_pyhmmer1_split/reORFcalled_all.part_{seqn}.faa")
+    shell:
+        '''
+        seqkit split --quiet -j {params.CPU} -p {params.CPU} -O {params.reORF_split_dir} {input.all_reORF}
+
+        touch {output.split_reORF}
+        '''
+
+use rule pyhmmer_prodigal_og_vir as pyhmmer_prodigal_reORF_vir with:
+    input:
+        split_faa = [os.path.join(TEMP_DIR, f"reORF_pyhmmer1_split/reORFcalled_all.part_{seqn}.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        indir = os.path.join(TEMP_DIR, "reORF_pyhmmer1_split"),
+        virdir = os.path.join(TEMP_DIR, "virion_reORF_pyhmmer"),
+        evalue = "1e-6",
+        script_dir = config['CENOTE_SCRIPTS'],
+        CPU = config["CPU"],
+        viriondb = os.path.join(config['C_DBS'], "hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m"),
+    output:
+        vir_contig_hits = os.path.join(TEMP_DIR, "virion_reORF_pyhmmer/contig_hit_count.tsv"),
+        vir_report = os.path.join(TEMP_DIR, "virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv")
+
+use rule pyhmmer_prodigal_og_rep as pyhmmer_prodigal_reORF_rep with:
+    input:
+        split_faa = [os.path.join(TEMP_DIR, f"reORF_pyhmmer1_split/reORFcalled_all.part_{seqn}.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        indir = os.path.join(TEMP_DIR, "reORF_pyhmmer1_split"),
+        repdir = os.path.join(TEMP_DIR, "rep_reORF_pyhmmer"),
+        evalue = "1e-6",
+        script_dir = config['CENOTE_SCRIPTS'],
+        CPU = config["CPU"],
+        repdb = os.path.join(config['C_DBS'], "hmmscan_DBs/virus_replication_clusters3.h3m"),
+    output:
+        rep_contig_hits = os.path.join(TEMP_DIR, "rep_reORF_pyhmmer/contig_hit_count.tsv"),
+        rep_report = os.path.join(TEMP_DIR, "rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv"),
+
+rule hits_pyhmmer_repvir:
+    input:
+        os.path.join(TEMP_DIR, "virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv"),
+        os.path.join(TEMP_DIR, "rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv"),
+    output:
+        rd_hits = os.path.join(TEMP_DIR, "virion_reORF_pyhmmer/hit_this_round1.txt")
+    shell:
+        '''
+        awk FNR!=1 {input} | cut -f1 > {output.rd_hits}
+        '''
+
+rule grep_nohit_repvir:
+    input:
+        rd_hits = os.path.join(TEMP_DIR, "virion_reORF_pyhmmer/hit_this_round1.txt"),
+        split_reORF = os.path.join(TEMP_DIR, "reORF_pyhmmer1_split/reORFcalled_all.part_{seqn}.faa")
+    params:
+        CPU = CPU
+    output:
+        no1_AAs = os.path.join(TEMP_DIR, "reORF_pyhmmer2_split/reORFcalled_all.part_{seqn}.no1.faa")
+    shell:
+        '''
+        if [ -s {input.rd_hits} ] ; then
+            seqkit grep --quiet -j {params.CPU} -v -f {input.rd_hits} {input.split_reORF} > {output.no1_AAs}
+        else
+            cp {input.split_reORF} {output.no1_AAs}
+        fi
+        '''
+
+use rule pyhmmer_prodigal_og_vir as pyhmmer_prodigal_reORF_com with:
+    input:
+        split_faa = [os.path.join(TEMP_DIR, f"reORF_pyhmmer2_split/reORFcalled_all.part_{seqn}.no1.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        indir = os.path.join(TEMP_DIR, "reORF_pyhmmer2_split"),
+        virdir = os.path.join(TEMP_DIR, "comm_reORF_pyhmmer"),
+        evalue = "1e-4",
+        script_dir = config['CENOTE_SCRIPTS'],
+        CPU = config["CPU"],
+        viriondb = os.path.join(config['C_DBS'], "hmmscan_DBs/useful_hmms_baits_and_not2a.h3m"),
+    output:
+        vir_contig_hits = os.path.join(TEMP_DIR, "comm_reORF_pyhmmer/contig_hit_count.tsv"),
+        vir_report = os.path.join(TEMP_DIR, "comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv")
+
+use rule hits_pyhmmer_repvir as hits_pyhmmer_com with:
+    input:
+        os.path.join(TEMP_DIR, "comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv")
+    output:
+        rd_hits = os.path.join(TEMP_DIR, "comm_reORF_pyhmmer/hit_this_round1.txt")
+
+
+rule grep_nohit_com:
+    input:
+        rd_hits = os.path.join(TEMP_DIR, "comm_reORF_pyhmmer/hit_this_round1.txt"),
+        no1_AAs = [os.path.join(TEMP_DIR, f"reORF_pyhmmer2_split/reORFcalled_all.part_{seqn}.no1.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        CPU = CPU
+    output:
+        no2_AAs = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/all_AA_seqs.no2.faa")
+    shell:
+        '''
+        if [ -s {input.rd_hits} ] ; then
+            seqkit grep --quiet -j {params.CPU} -v -f {input.rd_hits} {input.no1_AAs} > {output.no2_AAs}
+        else
+            cat {input.no1_AAs} > {output.no2_AAs}
+        fi
+        '''
+
+
+rule mmseqs_cdd:
+    input:
+        no2_AAs = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/all_AA_seqs.no2.faa")
+    params:
+        cdd_db = os.path.join(config['C_DBS'], "mmseqs_DBs/CDD"),
+        mm_temp = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/tmp")
+    threads:
+        int(CPU)
+    output:
+        rem_db = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/all_AA_seqs.no2DB"),
+        cdd_res = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/all_AA_seqs.no2_vs_CDD_resDB"),
+        mmseqs_tab = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/no2_seqs_CDD.tsv")
+    shell:
+        '''
+        mmseqs createdb {input.no2_AAs} {output.rem_db} -v 1
+
+        touch {output.cdd_res}
+        
+        mmseqs search {output.rem_db} {params.cdd_db} {output.cdd_res} {params.mm_temp} -s 4 -v 1
+
+        mmseqs convertalis {output.rem_db} {params.cdd_db} {output.cdd_res} {output.mmseqs_tab}\
+          --format-output query,target,pident,alnlen,evalue,bits -v 1
+        '''
+
+rule mmseqs_besthit:
+    input:
+        mmseqs_tab = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/no2_seqs_CDD.tsv")
+    params:
+        cdd_annot = os.path.join(config['C_DBS'], "mmseqs_DBs/cddid_all.tbl"),
+        wdir = os.path.join(TEMP_DIR, "reORF_mmseqs_combined"),
+        script_dir = config['CENOTE_SCRIPTS'],
+    output:
+        mm_best = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv")
+    shell:
+        '''
+        python {params.script_dir}/python_modules/parse_mmseqs_cdd_results1.py\
+          {input.mmseqs_tab} {params.cdd_annot} {params.wdir}
+        '''
+
+rule assess_genes:
+    input:
+        tr_sum = os.path.join(TEMP_DIR, "hallmark_contigs_terminal_repeat_summary.tsv"),
+        split_phan_bed = [os.path.join(TEMP_DIR, f"reORF/phan_split/oriented_hallmark_contigs.phanotate.part_{seqn}.phan_genes.bed") for seqn in seqkit_splits(CPU)],
+        split_prod_gff = [os.path.join(TEMP_DIR, f"reORF/prod_split/oriented_hallmark_contigs.prodigal.part_{seqn}.prod.gff") for seqn in seqkit_splits(CPU)],
+        vir_report = os.path.join(TEMP_DIR, "virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv"),
+        com_report = os.path.join(TEMP_DIR, "comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv"),
+        rep_report = os.path.join(TEMP_DIR, "rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv"),
+        mm_best = os.path.join(TEMP_DIR, "reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv"),
+    params:
+        htype = config['HALL_TYPE'],
+        bed_dir = os.path.join(TEMP_DIR, "reORF/phan_split"),
+        gff_dir = os.path.join(TEMP_DIR, "reORF/prod_split"),
+        vir_dom_list = os.path.join(config['C_DBS'], "viral_cdds_and_pfams_191028.txt"),
+        script_dir = config['CENOTE_SCRIPTS'],
+        outdir = os.path.join(TEMP_DIR, "assess_prune")
+    output:
+        assess_tab = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.tsv"),
+        hm_bed = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.hallmarks.bed"),
+        indiv_dir = directory(os.path.join(TEMP_DIR, "assess_prune/indiv_seqs"))
+    shell:
+        '''
+        python {params.script_dir}/python_modules/assess_virus_genes1.py {input.tr_sum}\
+          {params.bed_dir} {params.gff_dir} {input.vir_report} {input.com_report} {input.rep_report}\
+          {input.mm_best} {params.vir_dom_list} {params.outdir} {params.htype}
+        '''
+
+

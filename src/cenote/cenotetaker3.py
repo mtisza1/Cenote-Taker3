@@ -290,8 +290,8 @@ def cenotetaker3():
 
 
     if args.SMK == True:
-         ## making config file from arguments
-         config_smk = (
+        ## making config file from arguments
+        config_smk = (
             f"CENOTE_SCRIPTS: {str(cenote_script_path)}\n"
             f"original_contigs: {str(args.original_contigs)}\n"
             f"run_title: {str(args.run_title)}\n"
@@ -309,27 +309,36 @@ def cenotetaker3():
             f"C_DBS: {str(args.C_DBS)}\n"
             f"WRAP: {str(args.WRAP)}\n"
             f"PHROGS: {str(args.PHROGS)}\n"
-         )
+        )
 
-         out_conf = os.path.join(str(args.run_title), "smk_config.yaml")
-         with open(out_conf, "w") as f:
+        out_conf = os.path.join(str(args.run_title), "smk_config.yaml")
+        with open(out_conf, "w") as f:
             f.write(config_smk)
 
-         print(config_smk)
+        print(config_smk)
 
-         SMK_FILE = os.path.join(cenote_script_path, "Snakefile")
-         smk_cmd = (
+        SMK_FILE = os.path.join(cenote_script_path, "Snakefile")
+        smk_cmd = (
             f"snakemake --snakefile {SMK_FILE} "
             f"--directory {os.getcwd()} "
             f"--cores {int(args.CPU)} "
             f"--configfile {out_conf} "
             f"--until {str(args.UNTIL)}"
-         )
+        )
+        reportf = os.path.join(str(args.run_title), "run_report.html")
+        smk_report_cmd = (
+            f"snakemake --snakefile {SMK_FILE} "
+            f"--directory {os.getcwd()} "
+            f"--cores {int(args.CPU)} "
+            f"--configfile {out_conf} "
+            f"--report {reportf}"
+        ) 
 
-         try:
-             subprocess.run(smk_cmd, check=True, shell=True)
-         except:
-             print("couldn't run snakemake")
+        try:
+            subprocess.run(smk_cmd, check=True, shell=True)
+            subprocess.run(smk_report_cmd, check=True, shell=True)
+        except:
+            print("couldn't run snakemake")
         
 
 

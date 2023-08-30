@@ -86,6 +86,8 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
         except:
             lineage = "no lineage"
 
+        print(gcode_df.query("contig == @nameq")['gcode'])
+        print(tax_call_df.query("contig == @nameq & chunk_name == @chunkq")['taxon'])
         gcode = gcode_df.query("contig == @nameq")['gcode'].agg(pd.Series.mode)[0]
 
         topology = "linear"
@@ -100,6 +102,8 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
         except:
             lineage = "no lineage"
 
+        print(gcode_df.query("contig == @seq_record.id")['gcode'])
+        print(tax_call_df.query("contig == @seq_record.id")['taxon'])
         gcode = gcode_df.query("contig == @seq_record.id")['gcode'].agg(pd.Series.mode)[0]
 
         top_str = repeat_df.query("contig == @seq_record.id")['dtr_seq'].agg(pd.Series.mode)

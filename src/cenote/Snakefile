@@ -17,10 +17,19 @@ if config["CIRC_MINIMUM_DOMAINS"] >= config["LIN_MINIMUM_DOMAINS"]:
 else:
 	HALLMARK_MINIMUM = config["CIRC_MINIMUM_DOMAINS"]
 
+### checking that all read files exist
+if config["READS"] != "none":
+    for read in config["READS"].split():
+        if not os.path.isfile(read) or os.path.getsize(read) <= 0:
+            print(f"{read} file does not exist. exiting")
+            quit()
+
+
 
 ## more variables from config
 run_title = config["run_title"]
 CPU = config["CPU"]
+
 
 
 def find_files(directory, prefix, ext):
@@ -58,9 +67,7 @@ wildcard_constraints:
 ###############
 rule all:
     input:
-        assess_tab = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.tsv"),
-        hm_bed = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.hallmarks.bed"),
-        indiv_dir = directory(os.path.join(TEMP_DIR, "assess_prune/indiv_seqs"))
+        sqn_dir = directory(os.path.join(config["run_title"], "sequin_and_genome_maps"))
 
 
 rule filter_contig_length:
@@ -702,7 +709,7 @@ rule assess_genes:
     output:
         assess_tab = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.tsv"),
         hm_bed = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.hallmarks.bed"),
-        indiv_dir = directory(os.path.join(TEMP_DIR, "assess_prune/indiv_seqs"))
+        prune_dir = directory(os.path.join(TEMP_DIR, "assess_prune/prune_figures"))
     shell:
         '''
         python {params.script_dir}/python_modules/assess_virus_genes1.py {input.tr_sum}\
@@ -710,4 +717,213 @@ rule assess_genes:
           {input.mm_best} {params.vir_dom_list} {params.outdir} {params.htype}
         '''
 
+rule vir_chunks:
+    input:
+        assess_tab = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.tsv"),
+        hm_bed = os.path.join(TEMP_DIR, "assess_prune/contig_gene_annotation_summary.hallmarks.bed")
+    params:
+        prune_dir = os.path.join(TEMP_DIR, "assess_prune/prune_figures"),
+        lin_hm = config["LIN_MINIMUM_DOMAINS"],
+        script_dir = config['CENOTE_SCRIPTS'],
+        outdir = TEMP_DIR
+    output:
+        indiv_dir = directory(os.path.join(TEMP_DIR, "assess_prune/indiv_seqs")),
+        pruned_sum = os.path.join(TEMP_DIR, "contig_gene_annotation_summary.pruned.tsv"),
+        pruned_bed = os.path.join(TEMP_DIR, "prune_coords.bed"),
+        hypo_orf = os.path.join(TEMP_DIR, "hypothetical_proteins.after_chunk.txt")
+    shell:
+        '''
+        if [ ! -d {params.outdir}/assess_prune/indiv_seqs ]; then
+            mkdir {params.outdir}/assess_prune/indiv_seqs
+        fi
 
+        CHUNK_FILES=$( find {params.prune_dir} -type f -name "*chunks.tsv" )
+
+        if [ -n "$CHUNK_FILES" ] ; then
+            echo "$CHUNK_FILES" | while read SEQ_CHUNK ; do
+                B_SEQ=$( basename $SEQ_CHUNK )
+                tail -n+2 $SEQ_CHUNK > {output.indiv_dir}/${{B_SEQ%.tsv}}.bed
+
+                bedtools intersect -c -a {output.indiv_dir}/${{B_SEQ%.tsv}}.bed\
+                  -b {input.hm_bed} |\
+                  awk -v minh={params.lin_hm} '{{OFS=FS="\t"}}{{if ($5 >= minh) \
+                  {{print}} }}' > {output.indiv_dir}/${{B_SEQ%.chunks.tsv}}.viruses.tsv
+            done
+        fi
+
+        python {params.script_dir}/python_modules/adjust_viruses1.py {output.indiv_dir}\
+          {input.assess_tab} {params.outdir}
+        '''
+
+rule subseq_prune:
+    input:
+        pruned_bed = os.path.join(TEMP_DIR, "prune_coords.bed"),
+        orient_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.fasta")
+    params:
+        CPU = CPU
+    output:
+        pruned_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.pruned.fasta")
+    shell:
+        '''
+        seqkit subseq --quiet -j {params.CPU} --bed {input.pruned_bed} {input.orient_contigs} |\
+          sed 's/>.* />/g' > {output.pruned_contigs}
+        '''
+
+
+rule hypo_grep:
+    input:
+       hypo_orf = os.path.join(TEMP_DIR, "hypothetical_proteins.after_chunk.txt"),
+       all_reORF = os.path.join(TEMP_DIR, "reORF/reORFcalled_all.faa")
+    output:
+        hypo_AAs = os.path.join(TEMP_DIR, "hypo_AAs/reORFcalled_hypo.faa"),
+    shell:
+        '''
+        seqkit grep --quiet -f {input.hypo_orf} {input.all_reORF} > {output.hypo_AAs}
+        '''
+
+rule hypo_split:
+    input:
+        hypo_AAs = os.path.join(TEMP_DIR, "hypo_AAs/reORFcalled_hypo.faa"),
+    params:
+        hypo_split_dir = os.path.join(TEMP_DIR, "reORF_phrogs_split"),
+        CPU = CPU
+    output:
+        split_hypo_AAs = os.path.join(TEMP_DIR, "reORF_phrogs_split/reORFcalled_hypo.part_{seqn}.faa")
+    shell:
+        '''
+        seqkit split --quiet -j {params.CPU} -p {params.CPU} -O {params.hypo_split_dir} {input.hypo_AAs}
+
+        touch {output.split_hypo_AAs}
+        '''
+
+use rule pyhmmer_prodigal_og_vir as pyhmmer_phrogs with:
+    input:
+        split_faa = [os.path.join(TEMP_DIR, f"reORF_phrogs_split/reORFcalled_hypo.part_{seqn}.faa") for seqn in seqkit_splits(CPU)]
+    params:
+        indir = os.path.join(TEMP_DIR, "reORF_phrogs_split"),
+        virdir = os.path.join(TEMP_DIR, "phrogs_pyhmmer"),
+        evalue = "1e-3",
+        script_dir = config['CENOTE_SCRIPTS'],
+        CPU = config["CPU"],
+        viriondb = os.path.join(config['C_DBS'], "hmmscan_DBs/phrogs_for_ct.h3m"),
+    output:
+        vir_contig_hits = os.path.join(TEMP_DIR, "phrogs_pyhmmer/contig_hit_count.tsv"),
+        vir_report = os.path.join(TEMP_DIR, "phrogs_pyhmmer/pyhmmer_report_AAs.tsv")
+
+
+use rule hits_pyhmmer_repvir as hits_pyhmmer_phrogs with:
+    input:
+        os.path.join(TEMP_DIR, "phrogs_pyhmmer/pyhmmer_report_AAs.tsv")
+    output:
+        rd_hits = os.path.join(TEMP_DIR, "phrogs_pyhmmer/hit_this_round1.txt")
+
+rule tRNAscan:
+    input:
+        pruned_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.pruned.fasta")
+    output:
+        tRNA_rep = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.pruned.tRNAscan.tsv")
+    log:
+        os.path.join(TEMP_DIR, "tRNAscan-se.log")
+    shell:
+        '''
+        tRNAscan-SE -Q -G -o {output.tRNA_rep} --brief\
+          {input.pruned_contigs} > {log} 2>&1
+        '''
+
+rule read_depth:
+    input:
+        pruned_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.pruned.fasta")
+    params:
+        reads = config["READS"],
+        CPU = CPU
+    output:
+        read_cov = os.path.join(TEMP_DIR, "mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv")
+    log:
+        os.path.join(TEMP_DIR, "read_depth.log")
+    shell:
+        '''
+        if [ "{params.reads}" != "none" ] ; then
+            minimap2 -t {params.CPU} -ax sr {input.pruned_contigs} {params.reads} |\
+              samtools sort - |\
+              samtools coverage -o {output.read_cov} - > {log} 2>&1
+            
+        else
+            touch {output.read_cov}
+        fi
+        '''
+
+
+rule grep_final_hm:
+    input:
+        rd_hits = os.path.join(TEMP_DIR, "virion_reORF_pyhmmer/hit_this_round1.txt"),
+        all_reORF = os.path.join(TEMP_DIR, "reORF/reORFcalled_all.faa")
+    output:
+        fin_hm_AA = os.path.join(TEMP_DIR, "final_taxonomy/hallmark_proteins.faa")
+    shell:
+        '''
+        seqkit grep --quiet -f {input.rd_hits} {input.all_reORF} > {output.fin_hm_AA}
+        '''
+
+rule mmseqs_tax_final:
+    input:
+        fin_hm_AA = os.path.join(TEMP_DIR, "final_taxonomy/hallmark_proteins.faa")
+    params:
+        taxdb = os.path.join(config['C_DBS'], "mmseqs_DBs/refseq_virus_prot_taxDB"),
+        mm_temp = os.path.join(TEMP_DIR, "final_taxonomy/tmp")
+    threads:
+        int(CPU)
+    output:
+        hm_db = os.path.join(TEMP_DIR, "final_taxonomy/hallmark_proteinsDB"),
+        mm_res = os.path.join(TEMP_DIR, "final_taxonomy/hallmark_proteins_resDB"),
+        mmseqs_tab = os.path.join(TEMP_DIR, "final_taxonomy/hallmark_proteins_align.tsv")
+    shell:
+        '''
+        mmseqs createdb {input.fin_hm_AA} {output.hm_db} -v 1
+
+        mmseqs search {output.hm_db} {params.taxdb} {output.mm_res} {params.mm_temp}\
+          -v 1 --start-sens 1 --sens-steps 3 -s 7
+
+        mmseqs convertalis {output.hm_db} {params.taxdb} {output.mm_res} {output.mmseqs_tab}\
+          --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
+        '''
+
+rule vote_taxonomy:
+    input:
+        mmseqs_tab = os.path.join(TEMP_DIR, "final_taxonomy/hallmark_proteins_align.tsv"),
+        pruned_sum = os.path.join(TEMP_DIR, "contig_gene_annotation_summary.pruned.tsv"),
+    params:
+        script_dir = config['CENOTE_SCRIPTS'],
+        outdir = os.path.join(TEMP_DIR, "final_taxonomy")
+    output:
+        fin_tax = os.path.join(TEMP_DIR, "final_taxonomy/virus_taxonomy_summary.tsv")
+    shell:
+        '''
+        python {params.script_dir}/python_modules/vote_taxonomy.py {input.mmseqs_tab}\
+          {input.pruned_sum} {params.outdir}
+        '''
+
+rule sequin_fsas:
+    input:
+        pruned_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.pruned.fasta"),
+        fin_tax = os.path.join(TEMP_DIR, "final_taxonomy/virus_taxonomy_summary.tsv"),
+        tr_sum = os.path.join(TEMP_DIR, "hallmark_contigs_terminal_repeat_summary.tsv")
+    params:
+        script_dir = config['CENOTE_SCRIPTS'],
+    output:
+        sqn_dir = directory(os.path.join(config["run_title"], "sequin_and_genome_maps"))
+    shell:
+        '''
+        python {params.script_dir}/python_modules/make_sequin_fsas.py {input.pruned_contigs}\
+          {input.fin_tax} {input.tr_sum} {TEMP_DIR} {output.sqn_dir}
+
+        '''
+
+"""
+rule sequin_tbls:
+    input:
+        pruned_sum = os.path.join(TEMP_DIR, "contig_gene_annotation_summary.pruned.tsv"),
+        tRNA_rep = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.pruned.tRNAscan.tsv"),
+        phrogs_report = os.path.join(TEMP_DIR, "phrogs_pyhmmer/pyhmmer_report_AAs.tsv")
+    output:
+        sqn_dir = directory(os.path.join(config["run_title"], "sequin_and_genome_maps"))
+"""

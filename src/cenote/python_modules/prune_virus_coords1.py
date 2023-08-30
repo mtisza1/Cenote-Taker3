@@ -234,6 +234,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
                 ddf_list = ddf_list
 
     ## make chunk csv
+
     chunk_df = pd.DataFrame(ddf_list, columns=["chunk_number", "left_cutoff", "right_cutoff"])
 
     chunk_df['contig'] = name
@@ -248,12 +249,20 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     if str(hallmark_arg) == 'virion':
         vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
             .query("Evidence_source == 'hallmark_hmm'")
+        
+
+        #print(vir_bait_table)
     ## will need to update this statement for rna hallmarks
     else:
         vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
             .query("Evidence_source == 'hallmark_hmm' | Evidence_source == 'rep_hall_hmm'")
-        
+
+    
+    vir_bait_table['gene_start'] = vir_bait_table['gene_start'].astype(int)
+    vir_bait_table['gene_stop'] = vir_bait_table['gene_stop'].astype(int)
+
     vir_bait_table['mean'] = round(vir_bait_table[['gene_start', 'gene_stop']].mean(axis=1))
+
     vir_bait_table_med_list = list(vir_bait_table['mean'])
 
     points_list = []
@@ -315,3 +324,4 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     plt.close()
 
     figures.close()
+

@@ -779,7 +779,7 @@ fi
 #----	fields
 #----	(contig	gene_name	gene_orient	gene_start	gene_stop	contig_length	dtr_seq	evidence_acession	evidence_description	Evidence_source	vscore_category)
 #-- ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.hallmarks.bed
-#-- ${TEMP_DIR}/assess_prune/indiv_seqs/*chunks.tsv (0 or more)
+#-- ${TEMP_DIR}/assess_prune/prune_figures/*chunks.tsv (0 or more)
 #----	fields
 #----	(contig	left_cutoff	right_cutoff	chunk_number)
 #-- ${TEMP_DIR}/assess_prune/prune_figures/*figures.pdf (0 or more)

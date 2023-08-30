@@ -219,20 +219,26 @@ except:
 
 
 ## load file with list of additional common virus genes
-virlist_df = pd.read_csv(viral_cdds_list, header = None, names = ["evidence_acession"])
+try:
+    virlist_df = pd.read_csv(viral_cdds_list, header = None, names = ["evidence_acession"])
 
-virlist_df['vscore_category'] = 'common_virus'
+    virlist_df['vscore_category'] = 'common_virus'
+except:
+    print("no virlist")
 
 ## combine mmseqs CDD search table and common virus gene list
-comb_cdd_df = cdd_df.merge(virlist_df, on = "evidence_acession", how = "left")
+try:
+    comb_cdd_df = cdd_df.merge(virlist_df, on = "evidence_acession", how = "left")
 
-comb_cdd_df['vscore_category'] = np.where(comb_cdd_df['evidence_acession']
-                               .str.contains(
-                                   "PHA0",
-                                   case = False), 'common_virus', comb_cdd_df['vscore_category'])
+    comb_cdd_df['vscore_category'] = np.where(comb_cdd_df['evidence_acession']
+                                .str.contains(
+                                    "PHA0",
+                                    case = False), 'common_virus', comb_cdd_df['vscore_category'])
 
-comb_cdd_df['vscore_category'] = np.where(comb_cdd_df['vscore_category'].isna(), 'nonviral_gene',
-                                          comb_cdd_df['vscore_category'])
+    comb_cdd_df['vscore_category'] = np.where(comb_cdd_df['vscore_category'].isna(), 'nonviral_gene',
+                                            comb_cdd_df['vscore_category'])
+except:
+    print("no CDD mmseqs table")
 
 
 ## combine pyhmmer and mmseqs tables with contig/gene table for all gene annotations
@@ -260,6 +266,9 @@ try:
     
     contig_gene_df['evidence_description'] = np.where(contig_gene_df['evidence_description'].isna(), 'hypothetical protein',
                                           contig_gene_df['evidence_description'])
+    #print("contig_gene_df")
+    #print(contig_gene_df)
+    #print(contig_gene_df.contig_length)
 
 except:
     print("nope")
@@ -274,6 +283,10 @@ contig_gene_df.to_csv(contig_gene_outfile,
 hallmark_df = contig_gene_df.query("Evidence_source == 'hallmark_hmm'")
 hallmark_df = hallmark_df[['contig', 'gene_start', 'gene_stop']]
 
+#print("hallmark_df")
+
+#print(hallmark_df)
+
 hallmark_gene_outfile = os.path.join(out_dir, "contig_gene_annotation_summary.hallmarks.bed")
 
 hallmark_df.to_csv(hallmark_gene_outfile,
@@ -284,6 +297,8 @@ hallmark_df.to_csv(hallmark_gene_outfile,
 grouped_df = contig_gene_df.query("contig_length >= 10000")\
     .query("dtr_seq.isnull()").groupby('contig')
 
+
+
 try:
     for name, group in grouped_df:
 
@@ -291,3 +306,6 @@ try:
     
 except:
     print("No non-DTR virus contigs >= 10,000 nt. So pruning will not happen")
+
+    os.mkdir(os.path.join(out_dir, "prune_figures"))
+

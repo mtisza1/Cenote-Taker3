@@ -22,11 +22,11 @@ temp_dir = sys.argv[4]
 out_dir = sys.argv[5]
 
 #phanotate seqs
-phanotate_list_file = os.path.join(temp_dir, "hallmark_tax", "phanotate_seqs1.txt")
-
+#phanotate_list_file = os.path.join(temp_dir, "hallmark_tax", "phanotate_seqs1.txt")
+phanotate_list_file = sys.argv[6]
 #prodigal gcode table
-prodigal_list_file = os.path.join(temp_dir, "reORF", "prod_split", "contig_gcodes1.txt")
-
+#prodigal_list_file = os.path.join(temp_dir, "reORF", "prod_split", "contig_gcodes1.txt")
+prodigal_list_file = sys.argv[7]
 # make out dir
 
 if not os.path.isdir(out_dir):
@@ -44,10 +44,12 @@ if os.path.isfile(phanotate_list_file) and os.path.getsize(phanotate_list_file) 
 else:
     phan_df = pd.DataFrame()
 
+
 if os.path.isfile(prodigal_list_file) and os.path.getsize(prodigal_list_file) > 0:
     prod_df = pd.read_csv(prodigal_list_file, header = None, sep = "\t", names = ['contig', 'gcode'])
 else:
     prod_df = pd.DataFrame()
+
 
 ## combine phanotate and prodigal table
 gcode_list = []
@@ -86,8 +88,6 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
         except:
             lineage = "no lineage"
 
-        print(gcode_df.query("contig == @nameq")['gcode'])
-        print(tax_call_df.query("contig == @nameq & chunk_name == @chunkq")['taxon'])
         gcode = gcode_df.query("contig == @nameq")['gcode'].agg(pd.Series.mode)[0]
 
         topology = "linear"
@@ -102,8 +102,6 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
         except:
             lineage = "no lineage"
 
-        print(gcode_df.query("contig == @seq_record.id")['gcode'])
-        print(tax_call_df.query("contig == @seq_record.id")['taxon'])
         gcode = gcode_df.query("contig == @seq_record.id")['gcode'].agg(pd.Series.mode)[0]
 
         top_str = repeat_df.query("contig == @seq_record.id")['dtr_seq'].agg(pd.Series.mode)

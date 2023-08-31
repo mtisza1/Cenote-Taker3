@@ -304,7 +304,7 @@ def cenotetaker3():
             f"circ_length_cutoff: {str(args.circ_length_cutoff)}\n"
             f"linear_length_cutoff: {str(args.linear_length_cutoff)}\n"
             f"CIRC_MINIMUM_DOMAINS: {str(args.CIRC_MINIMUM_DOMAINS)}\n"
-            f"LIN_MINIMUM_DOMAINS: {str(args.linear_length_cutoff)}\n"
+            f"LIN_MINIMUM_DOMAINS: {str(args.LIN_MINIMUM_DOMAINS)}\n"
             f"HALL_TYPE: {str(args.virus_domain_db)}\n"
             f"C_DBS: {str(args.C_DBS)}\n"
             f"WRAP: {str(args.WRAP)}\n"

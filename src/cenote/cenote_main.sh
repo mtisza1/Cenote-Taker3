@@ -1067,7 +1067,8 @@ if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
 
    	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_fsas.py ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta\
    	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv\
-   	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps
+   	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps\
+   	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
 
 else
 
@@ -1103,8 +1104,8 @@ if [ -n "$FSA_FILES" ] ; then
 		echo "Assembly Method	whoknows" >> ${REC%.fsa}.cmt
 		echo "Genome Coverage	"$COVERAGE"x" >> ${REC%.fsa}.cmt
 		echo "Sequencing Technology	Illumina" >> ${REC%.fsa}.cmt
-		echo "Annotation Pipeline	Cenote-Taker2" >> ${REC%.fsa}.cmt
-		echo "URL	https://github.com/mtisza1/Cenote-Taker2" >> ${REC%.fsa}.cmt	
+		echo "Annotation Pipeline	Cenote-Taker 3" >> ${REC%.fsa}.cmt
+		echo "URL	https://github.com/mtisza1/Cenote-Taker3" >> ${REC%.fsa}.cmt	
 	done
 fi
 

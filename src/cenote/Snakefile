@@ -1,4 +1,5 @@
 import os
+#import pandas as pd
 
 ## set up temporary directory
 if not os.path.isdir(os.path.join(config["run_title"], "ct_tmp")):
@@ -67,9 +68,10 @@ wildcard_constraints:
 ###############
 rule all:
     input:
-        os.path.join(TEMP_DIR, "virus.fsa"),
-        os.path.join(TEMP_DIR, "virus.tbl"),
-        os.path.join(TEMP_DIR, "virus.cmt")
+        get_final_virus_seqs
+        #os.path.join(TEMP_DIR, "virus.fsa"),
+        #os.path.join(TEMP_DIR, "virus.tbl"),
+        #os.path.join(TEMP_DIR, "virus.cmt"),
         
 
 
@@ -764,6 +766,15 @@ checkpoint subseq_prune:
           sed 's/>.* />/g' > {output.pruned_contigs}
         '''
 
+def get_final_virus_seqs(wildcards):
+    exts = ['fsa', 'tbl', 'cmt']
+    pruned = checkpoints.subseq_prune.get().output['pruned_contigs'].open()
+    fin_virus = [line.strip(">").rstrip() for line in pruned if line.startswith(">")]
+
+    return expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{virus}.{ext}"),\
+     virus = fin_virus, ext = exts)
+
+print(get_final_virus_seqs)
 
 rule hypo_grep:
     input:
@@ -906,23 +917,46 @@ checkpoint sequin_fsas:
         prod_gcodes = os.path.join(TEMP_DIR, "reORF/prod_split/contig_gcodes1.txt")
     params:
         script_dir = config['CENOTE_SCRIPTS'],
+        sequin_dir = os.path.join(config["run_title"], "sequin_and_genome_maps")
     output:
-        sqn_dir = directory(os.path.join(config["run_title"], "sequin_and_genome_maps")),
-        #fsas = os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUSS}.fsa")
+        #fsa_dir = directory(os.path.join(TEMP_DIR, "fsa_files")),
+        fsas = os.path.join(config["run_title"], "sequin_and_genome_maps", "{virus}.fsa")
     shell:
         '''
         python {params.script_dir}/python_modules/make_sequin_fsas.py {input.pruned_contigs}\
-          {input.fin_tax} {input.tr_sum} {TEMP_DIR} {output.sqn_dir}\
+          {input.fin_tax} {input.tr_sum} {TEMP_DIR} {params.sequin_dir}\
           {input.phan_seqs} {input.prod_gcodes}
 
         '''
-
+"""
 def get_virus_fsa(wildcards):
-    virus_output = checkpoints.sequin_fsas.get(**wildcards).output['sqn_dir']
+    virus_output = checkpoints.sequin_fsas.get(**wildcards).output['fsa_dir']
     SEQNAMES, = glob_wildcards(os.path.join(virus_output, "{vir}.fsa"))
     return expand(os.path.join(virus_output, "{VIRUSS}.fsa"),\
       VIRUSS=SEQNAMES)
 
+rule cp_fsa:
+    input:
+        fsas = get_virus_fsa
+    output:
+        expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUSS}.fsa"),\
+          VIRUSS= glob_wildcards(os.path.join(TEMP_DIR, "fsa_files", "{vir}.fsa")))
+    shell:
+        '''
+        cp {input.tbls} {output}
+
+        '''
+
+
+rule merge_fsa:
+    input:
+        expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUSS}.fsa"),\
+          VIRUSS= glob_wildcards(os.path.join(TEMP_DIR, "fsa_files", "{vir}.fsa")))
+    output:
+        os.path.join(TEMP_DIR, "virus.fsa")
+    shell:
+        "cat {input} > {output}"
+"""
 
 checkpoint sequin_tbls:
     input:
@@ -931,89 +965,113 @@ checkpoint sequin_tbls:
         phrogs_rep = os.path.join(TEMP_DIR, "phrogs_pyhmmer/pyhmmer_report_AAs.tsv")
     params:
         script_dir = config['CENOTE_SCRIPTS'],
+        sequin_dir = os.path.join(config["run_title"], "sequin_and_genome_maps")
     output:
-        tsqn_dir = directory(os.path.join(TEMP_DIR, "sequin_and_genome_maps")),
-        #tbls = os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUST}.tbl")
+        #tsqn_dir = directory(os.path.join(TEMP_DIR, "tbl_files")),
+        tbls = os.path.join(config["run_title"], "sequin_and_genome_maps", "{virus}.tbl")
     shell:
         '''
         python {params.script_dir}/python_modules/make_sequin_tbls.py {input.pruned_sum}\
-          {input.tRNA_rep} {input.phrogs_rep} {output.tsqn_dir}
+          {input.tRNA_rep} {input.phrogs_rep} {params.sequin_dir}
         '''
 
+"""
 def get_virus_tbl1(wildcards):
     virus_output = checkpoints.sequin_tbls.get(**wildcards).output['tsqn_dir']
     TBLNAMES, = glob_wildcards(os.path.join(virus_output, "{vir}.tbl"))
     return expand(os.path.join(virus_output, "{VIRUST}.tbl"),\
       VIRUST=TBLNAMES)
-"""
-rule move_tbls:
+
+
+rule cp_tbl:
     input:
-        tbls = os.path.join(TEMP_DIR, "sequin_and_genome_maps", "{VIRUST}.tbl"),
-        tsqn_dir = directory(os.path.join(TEMP_DIR, "sequin_and_genome_maps")),
+        tbls = get_virus_tbl1
     output:
-        os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUST}.tbl")
+        expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUST}.tbl"),\
+          VIRUST= glob_wildcards(os.path.join(TEMP_DIR, "tbl_files", "{vir}.tbl")))
     shell:
         '''
         cp {input.tbls} {output}
-        '''
 
-def get_virus_tbl2(wildcards):
-    cp_output = checkpoints.sequin_tbls.get(**wildcards).output['tsqn_dir']
-    TBLNAMES2, = glob_wildcards(os.path.join(cp_output, "{vir}.tbl"))
-    return expand(os.path.join(config["run_title"], "sequin_and_genome_maps/{VIRUST2}.tbl"),\
-      VIRUST2=TBLNAMES2)
-"""
-checkpoint sequin_cmt:
-    input:
-        fsas = os.path.join(config["run_title"], "sequin_and_genome_maps/{VIRUSS}.fsa")
-    output:
-        cmts = os.path.join(config["run_title"], "sequin_and_genome_maps/{VIRUSS}.cmt")
-    shell:
         '''
-        echo "StructuredCommentPrefix	##Genome-Assembly-Data-START##" > {output.cmts}
-        echo "Assembly Method	whoknows" >> {output.cmts}
-        echo "Genome Coverage	1x" >> {output.cmts}
-        echo "Sequencing Technology	Illumina" >> {output.cmts}
-        echo "Annotation Pipeline	Cenote-Taker 3" >> {output.cmts}
-        echo "URL	https://github.com/mtisza1/Cenote-Taker3" >> {output.cmts}
-        '''
-
-def get_virus_cmt(wildcards):
-    cmt_output = checkpoints.sequin_fsas.get(**wildcards).output['sqn_dir']
-    CMTNAMES, = glob_wildcards(os.path.join(cmt_output, "{vir}.fsa"))
-    return expand(os.path.join(config["run_title"], "sequin_and_genome_maps/{VIRUSC}.tbl"),\
-      VIRUSC=CMTNAMES)
-
-rule merge_fsa:
-    input:
-        get_virus_fsa
-    output:
-        os.path.join(TEMP_DIR, "virus.fsa")
-    shell:
-        "cat {input} > {output}"
 
 rule merge_tbl1:
     input:
-        get_virus_tbl1
+        expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUST}.tbl"),\
+          VIRUST= glob_wildcards(os.path.join(TEMP_DIR, "tbl_files", "{vir}.tbl")))
     output:
         os.path.join(TEMP_DIR, "virus.tbl")
     shell:
         "cat {input} > {output}"
 
 """
-rule merge_tbl2:
+
+checkpoint sequin_cmt:
     input:
-        get_virus_tbl2
+        pruned_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.pruned.fasta"),
+        read_cov = os.path.join(TEMP_DIR, "mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv")
+    params:
+        sequin_dir = os.path.join(config["run_title"], "sequin_and_genome_maps")
     output:
-        os.path.join(TEMP_DIR, "virus2.tbl")
+        #cmts_dir = directory(os.path.join(TEMP_DIR, "cmt_files")),
+        tbls = os.path.join(config["run_title"], "sequin_and_genome_maps", "{virus}.cmt")
     shell:
-        "cat {input} > {output}"
+        '''
+        if [ ! -d {params.sequin_dir} ] ; then
+            mkdir  {params.sequin_dir}
+        fi
+
+        grep -F ">" {input.pruned_contigs} | sed 's/>//g' | while read SEQNAME ; do
+            if [ -s {input.read_cov} ] ; then
+                COVERAGE=$( awk -v SNAME="$SEQNAME" '{{OFS=FS="\t"}}\
+                  {{ if ($1 == SNAME) {{print $7}} }}' {input.read_cov} | head -n1 )
+            else
+                COVERAGE=1
+            fi
+            echo "StructuredCommentPrefix	##Genome-Assembly-Data-START##" > {params.sequin_dir}/${{SEQNAME}}.cmt
+            echo "Assembly Method	whoknows" >> {params.sequin_dir}/${{SEQNAME}}.cmt
+            echo "Genome Coverage	"$COVERAGE"x" >> {params.sequin_dir}/${{SEQNAME}}.cmt
+            echo "Sequencing Technology	Illumina" >> {params.sequin_dir}/${{SEQNAME}}.cmt
+            echo "Annotation Pipeline	Cenote-Taker 3" >> {params.sequin_dir}/${{SEQNAME}}.cmt
+            echo "URL	https://github.com/mtisza1/Cenote-Taker3" >> {params.sequin_dir}/${{SEQNAME}}.cmt
+        done
+
+        '''
+
 """
+def get_virus_cmt(wildcards):
+    cmt_output = checkpoints.sequin_cmt.get(**wildcards).output['cmts_dir']
+    CMTNAMES, = glob_wildcards(os.path.join(cmt_output, "{vir}.cmt"))
+    return expand(os.path.join(cmt_output, "{VIRUSC}.cmt"),\
+      VIRUSC=CMTNAMES)
+
+def get_final_cmt(wildcards):
+    cmt_output = checkpoints.sequin_cmt.get(**wildcards).output['cmts_dir']
+    CMTNAMES, = glob_wildcards(os.path.join(cmt_output, "{vir}.cmt"))
+    return expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUSC}.cmt"),\
+      VIRUSC=CMTNAMES)
+
+rule cp_cmt:
+    input:
+        cmts = get_virus_cmt
+    output:
+        expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUSC}.cmt"),\
+         VIRUSC = glob_wildcards(os.path.join(TEMP_DIR, "cmt_files", "{vir}.cmt")))
+    shell:
+        '''
+        cp {input.cmts} {output}
+
+        '''
+
 rule merge_cmt:
     input:
-        get_virus_cmt
+        #expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{VIRUSC}.cmt"),\
+        # VIRUSC = glob_wildcards(os.path.join(TEMP_DIR, "cmt_files", "{vir}.cmt")))
+        get_final_cmt
     output:
         os.path.join(TEMP_DIR, "virus.cmt")
     shell:
-        "cat {cmts} > {output}"
+        "cat {input} > {output}"
+"""
+
 

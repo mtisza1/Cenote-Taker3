@@ -66,12 +66,11 @@ wildcard_constraints:
 ###############
 #### rules ####
 ###############
+
 rule all:
     input:
         get_final_virus_seqs
-        #os.path.join(TEMP_DIR, "virus.fsa"),
-        #os.path.join(TEMP_DIR, "virus.tbl"),
-        #os.path.join(TEMP_DIR, "virus.cmt"),
+
         
 
 
@@ -93,7 +92,7 @@ rule filter_contig_length:
 
 
 
-checkpoint seq_split1:
+rule seq_split1:
     input:
         filt_contigs = os.path.join(run_title, \
             f"{run_title}.contigs_over_{LENGTH_MINIMUM}nt.fasta")
@@ -752,7 +751,7 @@ rule adjust_viruses:
         '''
 
 
-checkpoint subseq_prune:
+rule subseq_prune:
     input:
         pruned_bed = os.path.join(TEMP_DIR, "prune_coords.bed"),
         orient_contigs = os.path.join(TEMP_DIR, "oriented_hallmark_contigs.fasta")
@@ -766,15 +765,6 @@ checkpoint subseq_prune:
           sed 's/>.* />/g' > {output.pruned_contigs}
         '''
 
-def get_final_virus_seqs(wildcards):
-    exts = ['fsa', 'tbl', 'cmt']
-    pruned = checkpoints.subseq_prune.get().output['pruned_contigs'].open()
-    fin_virus = [line.strip(">").rstrip() for line in pruned if line.startswith(">")]
-
-    return expand(os.path.join(config["run_title"], "sequin_and_genome_maps", "{virus}.{ext}"),\
-     virus = fin_virus, ext = exts)
-
-print(get_final_virus_seqs)
 
 rule hypo_grep:
     input:

@@ -75,12 +75,12 @@ else:
 try:
     virion_hits_dt = pd.read_csv(virion_tsv_file, sep = "\t")
 except:
-    print("")
+    virion_hits_dt = pd.DataFrame()
 
 try:
     rep_hits_dt = pd.read_csv(rep_tsv_file, sep = "\t")
 except:
-    print("")
+    rep_hits_dt = pd.DataFrame()
 
 df_list = []
 for hit_t in [virion_hits_dt, rep_hits_dt]:

@@ -133,6 +133,12 @@ def cenotetaker3():
                                 run many times over. Do not use on large input contig files). \'no_hhsuite_tool\': forgoes \
                                 annotation of ORFs with hhsuite. Fastest way to complete a run. ')
 
+    optional_args.add_argument("--caller", dest="CALLER", type=str, choices=['default', 'prodigal', 'phanotate'],
+                            default='default', 
+                            help=' ORF caller for identified viruses. default: Cenote-Taker\
+                                will choose based on preliminary taxonomy call (phages = phanotate, others = prodigal)\
+                                prodigal: prodigal (meta mode) for all virus sequences. phanotate: phanotate for \
+                                all virus sequences. Note: phanotate takes longer than prodigal')
     ### add argument to force ORFcaller (prodigal or phanotate)
 
     ## should be host prediction, instead
@@ -172,25 +178,28 @@ def cenotetaker3():
                                 private database. Please be sure to specify SRA metadata.  ')
     ###
 
+    ### I need to account for this or remove it:
     optional_args.add_argument("--filter_out_plasmids", dest="FILTER_PLASMIDS", type=str2bool, default=True, 
                             help='Default: True -- True - OR - False. If True, hallmark genes of plasmids will not count \
                                 toward the minimum hallmark gene parameters. If False, hallmark genes of plasmids will count. \
                                     Plasmid hallmark gene set is not necessarily comprehensive at this time. ')
+    ### I need to account for this or remove it:
     optional_args.add_argument("--scratch_directory", dest="SCRATCH_DIR", type=str, default="none", 
                             help='Default: none -- When running many instances of Cenote-Taker2, it seems to run more \
                                 quickly if you copy the hhsuite databases to a scratch space temporarily. Use this argument \
                                 to set a scratch directory that the databases will be copied to (at least 100GB of scratch \
                                 space are required for copying the databases)')
     optional_args.add_argument("--cenote-dbs", dest="C_DBS", type=str, default="default", 
-                            help='DB path. If not set, Cenote-Taker looks for environmental variable CENOTE_DBS. \
+                            help='DB path. If not set here, Cenote-Taker looks for environmental variable CENOTE_DBS. \
                                 Then, if this variable is unset, DB path is assumed to be ' + str(parentpath))
     optional_args.add_argument("--wrap", dest="WRAP", type=str2bool, default="True", 
-                            help='Default: True -- Wrap/rotate DTR/circular contigs so the start codon of an ORF is the \
-                                first nucleotide in the contig/genome')
+                            help='Default: True -- Wrap/rotate DTR/circular contigs so the start codon of an ORF is \
+                                the first nucleotide in the contig/genome')
     optional_args.add_argument("--phrogs", dest="PHROGS", type=str2bool, default="True", 
                             help='Default: True -- Use PHROG HMMs to add annotations? See github repo for DB download \
                                 instructions')
-    optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="True", help='use snakemake file (instead of bash)?')
+    optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="True", 
+                               help='use snakemake file (instead of bash)?')
     optional_args.add_argument("--until", dest="UNTIL", type=str, default="all", help='run snakemake until')
 
 
@@ -309,6 +318,7 @@ def cenotetaker3():
             f"C_DBS: {str(args.C_DBS)}\n"
             f"WRAP: {str(args.WRAP)}\n"
             f"PHROGS: {str(args.PHROGS)}\n"
+            f"CALLER: {str(args.CALLER)}\n"
         )
 
         out_conf = os.path.join(str(args.run_title), "smk_config.yaml")
@@ -348,7 +358,8 @@ def cenotetaker3():
                         str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
                         str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
                         str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
-                        str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS)])
+                        str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
+                        str(args.CALLER)])
 
 
     ct_endtime = time.time()

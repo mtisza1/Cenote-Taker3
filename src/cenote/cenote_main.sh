@@ -19,6 +19,7 @@ HALL_TYPE=${14}
 C_DBS=${15}
 WRAP=${16}
 PHROGS=${17}
+CALLER=${18}
 
 
 PFAM_HHSUITE="${C_DBS}/pfam_32_db/pfam"
@@ -55,36 +56,42 @@ fi
 ### check databases exist in specified path
 if [ -z ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m ] ; then
 	echo "couldn't find virion hallmark hmm DB at ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
 if [ -z ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m ] ; then
 	echo "couldn't find replication hallmark hmm DB at ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
 if [ -z ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m ] ; then
 	echo "couldn't find common virus hmm DB at ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
 if [ -z ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m ] ; then
 	echo "couldn't find phrogs subset hmm DB at ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
 if [ -z ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB ] ; then
 	echo "couldn't find mmseqs2 tax DB at ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
 if [ -z ${C_DBS}/mmseqs_DBs/CDD ] ; then
 	echo "couldn't find mmseqs2 tax DB at ${C_DBS}/mmseqs_DBs/CDD"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
@@ -144,6 +151,8 @@ echo "virus hallmark type to count:      $HALL_TYPE" >> ${run_title}/run_argumen
 echo "min. viral hallmarks for linear:   $LIN_MINIMUM_DOMAINS" >> ${run_title}/run_arguments.txt
 echo "min. viral hallmarks for circular: $CIRC_MINIMUM_DOMAINS" >> ${run_title}/run_arguments.txt
 echo "Wrap contigs?                      $WRAP" >> ${run_title}/run_arguments.txt
+echo "PHROGS HMM db?                     $PHROGS" >> ${run_title}/run_arguments.txt
+echo "ORF Caller:                        $CALLER" >> ${run_title}/run_arguments.txt
 echo "Cenote DBs directory:              $C_DBS" >> ${run_title}/run_arguments.txt
 echo "Cenote scripts directory:          $CENOTE_SCRIPTS" >> ${run_title}/run_arguments.txt
 echo "Template file:                     $TEMPLATE_FILE" >> ${run_title}/run_arguments.txt
@@ -398,97 +407,124 @@ else
 fi
 
 
-### blastp-style mmseqs hallmark genes for taxonomy
-#- input: -#
-#-- ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt
-#-- ${TEMP_DIR}/split_orig_contigs/*prod.faa (1 or more)
-#- output: -#
-#-- ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa
-#-- ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv
-#-- ${TEMP_DIR}/hallmark_tax/orf_caller_each_seq.tsv
-#----	fields
-#----	(contig	out_length_contig	query	target	pident	alnlen	evalue	theader	taxlineage	ORFcaller	pos	Note)
+if [ ! -d ${TEMP_DIR}/reORF ]; then
+	mkdir ${TEMP_DIR}/reORF
+fi
 
-if [ -s ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt ] && [ -n "$SPLIT_ORIG_AAs" ] ; then
+if [ ! -d ${TEMP_DIR}/hallmark_tax ]; then
+	mkdir ${TEMP_DIR}/hallmark_tax
+fi
 
-	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BGreen}mmseqs of original hallmark genes for taxonomy calls ${MDYT}${Color_Off}"
+### evaluate ORF caller argument
 
-	if [ ! -d ${TEMP_DIR}/hallmark_tax ]; then
-		mkdir ${TEMP_DIR}/hallmark_tax
+if [ $CALLER == "prodigal" ] || [ $CALLER == "phanotate" ] ; then
+	#- input: -#
+	#-- ${TEMP_DIR}/contigs_to_keep.txt
+	#- output: -#
+	#-- ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
+	#-- ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+	echo "forcing final ORF calls to be $CALLER"
+
+	if [ $CALLER == "prodigal" ] ; then
+
+		cp ${TEMP_DIR}/contigs_to_keep.txt ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
+
+	elif [ $CALLER == "phanotate" ] ; then
+
+		cp ${TEMP_DIR}/contigs_to_keep.txt ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+
 	fi
 
-	seqkit grep --quiet -f ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt\
-	  $SPLIT_ORIG_AAs > ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa
+else
 
-	if [ -s ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa ] ; then
-		mmseqs createdb ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB -v 1
+	### blastp-style mmseqs hallmark genes for taxonomy
+	#- input: -#
+	#-- ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt
+	#-- ${TEMP_DIR}/split_orig_contigs/*prod.faa (1 or more)
+	#- output: -#
+	#-- ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa
+	#-- ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv
 
-		mmseqs search ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
-		  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
-		  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/tmp -v 1 --start-sens 1 --sens-steps 3 -s 7
 
-		mmseqs convertalis ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
-		  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
-		  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv\
-		  --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
+	if [ -s ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt ] && [ -n "$SPLIT_ORIG_AAs" ] ; then
+
+		MDYT=$( date +"%m-%d-%y---%T" )
+		echo -e "${BGreen}mmseqs of original hallmark genes for taxonomy calls ${MDYT}${Color_Off}"
+
+
+
+		seqkit grep --quiet -f ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt\
+		  $SPLIT_ORIG_AAs > ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa
+
+		if [ -s ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa ] ; then
+			mmseqs createdb ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB -v 1
+
+			mmseqs search ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
+			  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+			  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/tmp -v 1 --start-sens 1 --sens-steps 3 -s 7
+
+			mmseqs convertalis ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
+			  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+			  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv\
+			  --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
+
+		else
+			echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa"
+			exit
+		fi
 
 	else
-		echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa"
+		echo "couldn't find ${TEMP_DIR}/contigs_to_keep.txt or $SPLIT_ORIG_AAs for mmseqs hallmarks"
 		exit
 	fi
 
-else
-	echo "couldn't find ${TEMP_DIR}/contigs_to_keep.txt or $SPLIT_ORIG_AAs for mmseqs hallmarks"
-	exit
-fi
+	### parse taxonomy on hallmark gene mmseqs2 search and decide final ORF caller
+	#- input: -#
+	#-- ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv
+	#-- ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
+	#- output: -#
+	#-- ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
+	#-- ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+	#-- ${TEMP_DIR}/hallmark_tax/orf_caller_each_seq.tsv
+	#----	fields
+	#----	(contig	out_length_contig	query	target	pident	alnlen	evalue	theader	taxlineage	ORFcaller	pos	Note)
 
-### parse taxonomy on hallmark gene mmseqs2 search and decide final ORF caller
-#- input: -#
-#-- ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv
-#-- ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
-#- output: -#
-#-- ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
-#-- ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+	if [ -s ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv ] && [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
+		MDYT=$( date +"%m-%d-%y---%T" )
+		echo -e "${BGreen}choosing ORF caller for each sequence ${MDYT}${Color_Off}"
 
-if [ -s ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv ] && [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
-	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BGreen}choosing ORF caller for each sequence ${MDYT}${Color_Off}"
+		python ${CENOTE_SCRIPTS}/python_modules/orfcaller_decision1.py ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv\
+		  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR}/hallmark_tax
 
-	python ${CENOTE_SCRIPTS}/python_modules/orfcaller_decision1.py ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv\
-	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR}/hallmark_tax
-
-else
-	echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv or ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv"
-	exit
-fi
-
-## redo ORF calls for everything. Some need phanotate, some were rotated
-if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] || [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
-	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BBlue}redoing ORF calls for each sequence ${MDYT}${Color_Off}"
-
-
-	## adding contigs that had no hits in mmseqs search to list of contigs that need prodigal ORF calling
-	if [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
-		cat ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
+	else
+		echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv or ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv"
+		exit
 	fi
 
-	if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] ; then
-		cat ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
-	fi
-	if [ -s ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt ] ; then
-		grep -v -f ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt\
-		  ${TEMP_DIR}/contigs_to_keep.txt >> ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
-	fi
+	## redo ORF calls for everything. Some need phanotate, some were rotated
+	if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] || [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
+		MDYT=$( date +"%m-%d-%y---%T" )
+		echo -e "${BBlue}redoing ORF calls for each sequence ${MDYT}${Color_Off}"
 
 
-	if [ ! -d ${TEMP_DIR}/reORF ]; then
-		mkdir ${TEMP_DIR}/reORF
+		## adding contigs that had no hits in mmseqs search to list of contigs that need prodigal ORF calling
+		if [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
+			cat ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
+		fi
+
+		if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] ; then
+			cat ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
+		fi
+		if [ -s ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt ] ; then
+			grep -v -f ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt\
+			  ${TEMP_DIR}/contigs_to_keep.txt >> ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
+		fi
+
+
+	else
+		echo "couldn't find prodigal_seqs1.txt or phanotate_seqs1.txt"
+		exit
 	fi
-else
-	echo "couldn't find prodigal_seqs1.txt or phanotate_seqs1.txt"
-	exit
 fi
 
 ### Prodigal for hallmark, rotated seqs
@@ -799,6 +835,14 @@ else
 	echo "couldn't start assess and prune script"
 fi
 
+### find coordinates of viruses within input contigs
+#- input: -#
+#--  ${TEMP_DIR}/assess_prune/prune_figures/*chunks.tsv
+#--  ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.hallmarks.bed
+#- output: -#
+#--  ${TEMP_DIR}/assess_prune/indiv_seqs/*.bed
+#--  ${TEMP_DIR}/assess_prune/indiv_seqs/*viruses.tsv
+
 CHUNK_FILES=$( find ${TEMP_DIR}/assess_prune/prune_figures -type f -name "*chunks.tsv" )
 
 if [ -s ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.hallmarks.bed ] && [ -n "$CHUNK_FILES" ] ; then
@@ -826,12 +870,23 @@ else
 	echo "couldn't find chunk files"
 fi
 
-#VIR_COORD_FILES=$( find ${TEMP_DIR}/assess_prune/indiv_seqs -type f -name "*viruses.tsv" )
+
+### adjust viruses based on pruning assessment
+#- input: -#
+#--  ${TEMP_DIR}/assess_prune/indiv_seqs/*viruses.tsv
+#--  ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.fasta
+#- output: -#
+#--  ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv
+#--  ${TEMP_DIR}/prune_coords.bed
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
+#--  ${TEMP_DIR}/hypothetical_proteins.after_chunk.txt
 
 if [ -s ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BPurple}time update: reconfiguring gene/contig coordinates after prune ${MDYT}${Color_Off}"
+
 	python ${CENOTE_SCRIPTS}/python_modules/adjust_viruses1.py ${TEMP_DIR}/assess_prune/indiv_seqs\
 	  ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv ${TEMP_DIR}
 
@@ -840,17 +895,18 @@ if [ -s ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv ] ; then
 	  sed 's/>.* />/g' > ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
 
 
-	#awk '{OFS=FS="\t"}{ if \
-	#	($9 ~ /hypothetical protein/ || $9 ~ /unnamed protein product/ || $9 ~ /Predicted protein/ || \
-	#	$9 ~ /Uncharacterized protein/ || $9 ~ /Domain of unknown function/ ||$9 ~ /^gp/) \
-	#	{print $2} }' ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv > ${TEMP_DIR}/hypothetical_proteins.after_chunk.txt
-
 else
 	echo "couldn't find ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv for adjust viruses"
 
 fi
 
-## pyhmmer3 (PHROGS HMMS)
+### pyhmmer3 (selected PHROGS HMMS)
+#- input: -#
+#--  ${TEMP_DIR}/hypothetical_proteins.after_chunk.txt
+#--  ${TEMP_DIR}/reORF/reORFcalled_all.faa
+#- output: -#
+#--  ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv
+#--  ${TEMP_DIR}/phrogs_pyhmmer/hit_this_round1.txt
 
 if [ "${PHROGS}" == "True" ]  && [ -s ${TEMP_DIR}/hypothetical_proteins.after_chunk.txt ]; then
 
@@ -948,10 +1004,11 @@ else
 	echo "not running hhsearch/hhblits"
 fi
 
-## tRNAscan-SE
-#-# to annotation table add ROWS for feature (start, stop, orient)
-#-# to annotation table add columns
-#-# tRNA score, tRNA description
+### tRNAscan-SE
+#- input: -#
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
+#- output: -#
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.tRNAscan.tsv
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] ; then
 
@@ -967,7 +1024,12 @@ else
 fi
 
 
-## read mapping
+### Mapping reads to virus contigs
+#- input: -#
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
+#--  Fastq files in $READS variable
+#- output: -#
+#--  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] && [ "${READS}" != "none" ] ; then
 
@@ -986,7 +1048,15 @@ else
 fi
 
 
-## redo hallmark taxonomy on reORF viruses/chunks
+### redo hallmark taxonomy on reORF viruses/chunks
+#- input: -#
+#--  ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+#--  ${TEMP_DIR}/reORF/reORFcalled_all.faa
+#--  ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv
+#- output: -#
+#--  ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa
+#--  ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv
+#--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
 
 if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 
@@ -1013,7 +1083,7 @@ if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 		  --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
 
 	else
-		echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa"
+		echo "couldn't find ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa"
 	fi
 
 	if [ -s ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv ] ; then
@@ -1034,7 +1104,7 @@ fi
 
 
 ## Format files for table2asn
-##  remove overlapping tRNAs/genes and replace them with tRNAs
+
 
 ## sequin fsa
 # seqname
@@ -1057,6 +1127,10 @@ fi
 #	  [topology="topoq"] [Bioproject=" prjn_var "] [Biosample=" samn_var "] [SRA=" srr_var "] [gcode="gcodeq"]" ;\
 #	  print $seq }' $NUCL_FILE > sequin_and_genome_maps/${JUST_TBL2_FILE%.comb3.tbl}.fsa ; 
 
+
+
+#-#-  finish annotations here. Format header info into tsv and read it here
+
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
    [ -s ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv ] &&\
    [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
@@ -1076,6 +1150,7 @@ else
 fi
 
 if [ -s ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ] ; then
+	#-#-  remove overlapping tRNAs/genes and replace them with tRNAs
 
 	## sequin tbl
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_tbls.py ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv\

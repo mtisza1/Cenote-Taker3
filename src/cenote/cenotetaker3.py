@@ -3,6 +3,7 @@
 import argparse
 import sys, os
 import subprocess
+from subprocess import Popen, PIPE, STDOUT
 from pathlib import Path
 from Bio import SeqIO
 import time
@@ -10,6 +11,7 @@ from datetime import timedelta
 import random
 import string
 import re
+import logging
 
 
 def str2bool(v):
@@ -144,13 +146,9 @@ def cenotetaker3():
     ## should be host prediction, instead
     #optional_args.add_argument("--crispr_file", dest="CRISPR_FILE", type=str, default='none', help='Tab-separated file with CRISPR hits in the following format: CONTIG_NAME HOST_NAME NUMBER_OF_MATCHES. You could use this tool: https://github.com/edzuf/CrisprOpenDB. Then reformat for Cenote-Taker 2')
 
-    ### these could be provided in a config file instead?
     optional_args.add_argument("--isolation_source", dest="isolation_source", type=str, default='unknown', 
                             help='Default: unknown -- Describes the local geographical source of the organism from \
                                 which the sequence was derived')
-    optional_args.add_argument("--Environmental_sample", dest="Environmental_sample", type=str2bool, default=False, 
-                            help='Default: False -- True or False, Identifies sequence derived by direct molecular \
-                                isolation from an unidentified organism')
     optional_args.add_argument("--collection_date", dest="collection_date", type=str, default='unknown', 
                             help='Default: unknown -- Date of collection. this format: 01-Jan-2019, i.e. DD-Mmm-YYYY')
     optional_args.add_argument("--metagenome_type", dest="metagenome_type", type=str, default='unknown', 
@@ -176,7 +174,6 @@ def cenotetaker3():
                             help=' default: original -- original data is not taken from other researchers\' public or \
                                 private database. \'tpa_assembly\': data is taken from other researchers\' public or \
                                 private database. Please be sure to specify SRA metadata.  ')
-    ###
 
     ### I need to account for this or remove it:
     optional_args.add_argument("--filter_out_plasmids", dest="FILTER_PLASMIDS", type=str2bool, default=True, 
@@ -205,6 +202,28 @@ def cenotetaker3():
 
     args = parser.parse_args()
 
+    ## make out directory (rename any existing directory)
+    if not os.path.isdir(str(args.run_title)):
+        os.makedirs(str(args.run_title))
+    else:
+        randID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        os.rename(str(args.run_title), f"{str(args.run_title)}_old_{randID}")
+        os.makedirs(str(args.run_title))
+
+    #### define logger #####
+    logger = logging.getLogger("cenote_logger")
+    logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+
+    file_handler = logging.FileHandler(os.path.join(str(args.run_title), f"{str(args.run_title)}_cenotetaker.log"))
+    file_handler.setLevel(logging.DEBUG)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    #########################
+
 
     validate_fasta(args.original_contigs)
 
@@ -228,34 +247,31 @@ def cenotetaker3():
         return find_executable(name) is not None
 
     if not is_tool("samtools") and str(READS) != "none" :
-        print ("samtools is not found. Exiting.")
+        logger.warning("samtools is not found. Exiting.")
         quit()    
     if not is_tool("minimap2") and str(READS) != "none" :
-        print ("minimap2 is not found. Exiting.")
+        logger.warning("minimap2 is not found. Exiting.")
         quit()
-    #    if not is_tool("bioawk") :
-    #        print ("bioawk is not found. Exiting.")
-    #        quit()
     if not is_tool("tRNAscan-SE") :
-        print ("tRNAscan-SE is not found. Exiting.")
+        logger.warning("tRNAscan-SE is not found. Exiting.")
         quit()
     if not is_tool("tbl2asn") :
-        print ("table2asn is not found. Exiting.")
+        logger.warning("tbl2asn is not found. Exiting.")
         quit()
     if not is_tool("seqkit") :
-        print ("seqkit is not found. Exiting.")
+        logger.warning("seqkit is not found. Exiting.")
         quit()
     #    if not is_tool("hhblits") :
     #        print ("hhblits is not found. Exiting.")
     #        quit()
     if not is_tool("bedtools") :
-        print ("bedtools is not found. Exiting.")
+        logger.warning("bedtools is not found. Exiting.")
         quit()
     if not is_tool("phanotate.py") :
-        print ("phanotate is not found. Exiting.")
+        logger.warning("phanotate is not found. Exiting.")
         quit()
     if not is_tool("prodigal") :
-        print ("prodigal is not found. Exiting.")
+        logger.warning("prodigal is not found. Exiting.")
         quit()
 
     reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
@@ -263,39 +279,31 @@ def cenotetaker3():
 
 
     if 'pyhmmer' not in installed_packages:
-        print("pyhmmer not found in installed python packages. Exiting.")
+        logger.warning("pyhmmer not found in installed python packages. Exiting.")
         quit()
 
     if 'numpy' not in installed_packages:
-        print("numpy not found in installed python packages. Exiting.")
+        logger.warning("numpy not found in installed python packages. Exiting.")
         quit()
 
     if 'pandas' not in installed_packages:
-        print("pandas not found in installed python packages. Exiting.")
+        logger.warning("pandas not found in installed python packages. Exiting.")
         quit()
 
     if 'biopython' not in installed_packages:
-        print("biopython not found in installed python packages. Exiting.")
+        logger.warning("biopython not found in installed python packages. Exiting.")
         quit()
 
 
     ## check run_title suitability
     if re.search(r'^[a-zA-Z0-9_]+$', str(args.run_title)) and \
         len(str(args.run_title)) <= 18:
-        print(str(args.run_title))
+        logger.info(str(args.run_title))
     else:
-        print(f"{str(args.run_title)} is not a valid name for the run title ( -r argument)")
-        print( " the run title needs to be only letters, numbers and underscores (_) and \
+        logger.warning(f"{str(args.run_title)} is not a valid name for the run title ( -r argument)")
+        logger.warning( "the run title needs to be only letters, numbers and underscores (_) and \
               18 characters or less. Exiting.")
         quit()
-
-    ## make out directory (rename any existing directory)
-    if not os.path.isdir(str(args.run_title)):
-        os.makedirs(str(args.run_title))
-    else:
-        randID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
-        os.rename(str(args.run_title), f"{str(args.run_title)}_old_{randID}")
-        os.makedirs(str(args.run_title))
 
 
     if args.SMK == True:
@@ -348,19 +356,33 @@ def cenotetaker3():
             subprocess.run(smk_cmd, check=True, shell=True)
             subprocess.run(smk_report_cmd, check=True, shell=True)
         except:
-            print("couldn't run snakemake")
+            logger.warning("couldn't run snakemake")
         
 
 
     else:
-        subprocess.call(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
+
+        #### define logging of subprocess (cenote_main.sh) ####
+        def log_subprocess_output(pipe):
+            for line in iter(pipe.readline, b''): # b'\n'-separated lines
+                logger.info(line.decode("utf-8").rstrip('\n'))
+
+        ### run the main script
+        process = Popen(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
                         str(args.original_contigs), str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
                         str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
                         str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
                         str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
                         str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
-                        str(args.CALLER)])
+                        str(args.CALLER), str(args.isolation_source),
+                        str(args.collection_date), str(args.metagenome_type), str(args.srr_number), 
+                        str(args.srx_number), str(args.biosample), str(args.bioproject),
+                        str(args.ASSEMBLER), str(args.MOLECULE_TYPE), str(args.DATA_SOURCE)],
+                        stdout=PIPE, stderr=STDOUT)
 
+        with process.stdout:
+            log_subprocess_output(process.stdout)
+        exitcode = process.wait()
 
     ct_endtime = time.time()
 
@@ -368,7 +390,7 @@ def cenotetaker3():
 
     time_taken = round(time_taken, 2) 
 
-    print("This Cenote-Taker run took: " + str(timedelta(seconds=time_taken)))
+    logger.info("This Cenote-Taker run took: " + str(timedelta(seconds=time_taken)))
 
 if __name__ == "__main__":
     cenotetaker3()

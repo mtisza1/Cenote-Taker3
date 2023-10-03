@@ -21,14 +21,29 @@ temp_dir = sys.argv[4]
 
 out_dir = sys.argv[5]
 
-#phanotate seqs
-#phanotate_list_file = os.path.join(temp_dir, "hallmark_tax", "phanotate_seqs1.txt")
 phanotate_list_file = sys.argv[6]
-#prodigal gcode table
-#prodigal_list_file = os.path.join(temp_dir, "reORF", "prod_split", "contig_gcodes1.txt")
-prodigal_list_file = sys.argv[7]
-# make out dir
 
+prodigal_list_file = sys.argv[7]
+
+ISO_SOURCE = sys.argv[8]
+
+COLLECT_DATE = sys.argv[9]
+
+META_TYPE = sys.argv[10]
+
+SRR = sys.argv[11]
+
+SRX = sys.argv[12]
+
+BIOSAMP = sys.argv[13]
+
+PRJ = sys.argv[14]
+
+MOL_TYPE = sys.argv[15]
+
+DATA_SOURCE = sys.argv[16]
+
+# make out dir
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
@@ -112,8 +127,11 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
             topology = "linear"
 
     # here's the whole header string
-    header = f">{str(seq_record.id)} [organism={organism} sp. ct{randID}] [gcode={gcode}] [topology={topology}] [note: taxonomic lineage {lineage}]"
-    #header = ">" + str(seq_record.id) + " [organism=" + organism + " sp. ct" + randID + "] [gcode=" + str(gcode) + "] [topology=" + topology + "] [note: taxonomic lineage " + lineage + "]" 
+    header = f">{str(seq_record.id)} [organism={organism} sp. ct{randID}] [gcode={gcode}] \
+        [topology={topology}] [note: taxonomic lineage {lineage}] [isolation_source={ISO_SOURCE}] \
+   	    [collection_date={COLLECT_DATE}] [metagenome_source={META_TYPE}] [SRA={SRR}] \
+        [note=genome binned from sequencing reads available in {SRX}] [Biosample={BIOSAMP}] \
+        [Bioproject={PRJ}] [moltype={MOL_TYPE}] [isolation_source={DATA_SOURCE}]"
     
     seq_output_file = os.path.join(out_dir, str(seq_record.id) + ".fsa")
 

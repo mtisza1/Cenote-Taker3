@@ -107,7 +107,7 @@ desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
 
 org_info_df = pd.merge(merge_df, desc_df, on = ["contig", "chunk_name"], how = "left")
 
-org_info_df['chunk_length'] = np.where(org_info_df['chunk_length'].isnull, 
+org_info_df['chunk_length'] = np.where(org_info_df['chunk_length'].isnull(), 
                                        org_info_df['contig_length'], 
                                        org_info_df['chunk_length'])
 
@@ -144,6 +144,8 @@ summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organi
                                                  'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',
                                                  'virion_hallmark_genes', 'rep_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
 
+summary_df = summary_df.astype(dtype= {"virus_seq_length": "int64"})
+
 parentpath = Path(sequin_dir).parents[0]
 
 summary_out = os.path.join(parentpath, f"{run_title}_virus_summary.tsv")
@@ -154,6 +156,11 @@ summary_df.to_csv(summary_out, sep = "\t", index = False)
 # where chunk names are not null:
 prune_sum_df = org_info_df[['contig', 'contig_length', 'chunk_length', 'chunk_name', 'chunk_start', 'chunk_stop']]\
     .query("chunk_name == chunk_name").drop_duplicates()
+
+prune_sum_df = prune_sum_df[prune_sum_df['contig_length'].notna()]
+
+prune_sum_df = prune_sum_df.astype(dtype= {"contig_length": "int64", "chunk_length": "int64", 
+                                           "chunk_start": "int64", "chunk_stop": "int64"})
 
 if not prune_sum_df.empty:
     prune_out = os.path.join(parentpath, f"{run_title}_prune_summary.tsv")

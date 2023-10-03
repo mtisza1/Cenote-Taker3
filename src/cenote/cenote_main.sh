@@ -20,7 +20,16 @@ C_DBS=${15}
 WRAP=${16}
 PHROGS=${17}
 CALLER=${18}
-
+ISO_SOURCE=${19}
+COLLECT_DATE=${20}
+META_TYPE=${21}
+SRR=${22}
+SRX=${23}
+BIOSAMP=${24}
+PRJ=${25}
+ASSEMBLER=${26}
+MOL_TYPE=${27}
+DATA_SOURCE=${28}
 
 PFAM_HHSUITE="${C_DBS}/pfam_32_db/pfam"
 HHSUITE_DB_STR="-d ${PFAM_HHSUITE} "
@@ -699,10 +708,10 @@ if [ -n "$SPLIT_REORF_AAs" ] ; then
 
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/virion_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-8
-	#-#-# add rep hallmark hmmscan
+	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-6
+
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/rep_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-8
+	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-6
 
 	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] && 
 	   [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
@@ -743,7 +752,7 @@ if [ -n "$SECOND_REORF_AAs" ] ; then
 
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer2_split ${TEMP_DIR}/comm_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m $CPU 1e-5
+	  ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m $CPU 1e-4
 
 
 	if [ -s ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
@@ -1009,6 +1018,8 @@ fi
 #--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
 #- output: -#
 #--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.tRNAscan.tsv
+#----	fields
+#----	(seq_name	trna_number	begin	end	type	anticodon	intron_begin	intron_end	score	note)
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] ; then
 
@@ -1057,6 +1068,8 @@ fi
 #--  ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa
 #--  ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv
 #--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
+#----	fields
+#----	(contig	chunk_name	taxon	taxonomy_hierarchy	taxon_level	avg_hallmark_AAI_to_ref)
 
 if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 
@@ -1100,36 +1113,17 @@ else
 	echo "can't find the reORF hallmark hits for taxonomy"
 fi
 
-## blastn-style mmseqs2 taxonomy for species level
+#-#- blastn-style mmseqs2 taxonomy for species level
 
-
-## Format files for table2asn
-
-
-## sequin fsa
-# seqname
-# input name:
-# organism=
-# moltype=
-# isolate=
-# topology=
-# gcode=
-#	bioawk -v srr_var="$srr_number" -v tax_var="$tax_guess" -v perc_var="$perc_id" -v headername="$fsa_head" \
-#	  -v newname="$file_core" -v source_var="$isolation_source" -v rand_var="$rand_id" -v \
-#	  number_var="$file_numbers" -v date_var="$collection_date" -v metgenome_type_var="$metagenome_type" \
-#	  -v srx_var="$srx_number" -v prjn_var="$bioproject" -v samn_var="$biosample" \
-#	  -v molecule_var="$MOLECULE_TYPE" -v topoq="$TOPOLOGY" -v gcodeq="$GCODE" -v o_name="$input_contig_name" \
-#	  -v crispr1="$CRISPR" -v blastn="$BLASTN_INFO" -c fastx \
-#	  '{ print ">" newname " [note=input name:"o_name" -- closest relative: " tax_var " " perc_var " ; " crispr1" "blastn"] \
-#	  [organism=" headername " ct" rand_var number_var "] [moltype=genomic "molecule_var"]\
-#	  [isolation_source=" source_var "] [isolate=ct" rand_var number_var " ] [collection_date=" date_var "] \
-#	  [metagenome_source=" metgenome_type_var "] [note=genome binned from sequencing reads available in " srx_var "] \
-#	  [topology="topoq"] [Bioproject=" prjn_var "] [Biosample=" samn_var "] [SRA=" srr_var "] [gcode="gcodeq"]" ;\
-#	  print $seq }' $NUCL_FILE > sequin_and_genome_maps/${JUST_TBL2_FILE%.comb3.tbl}.fsa ; 
-
-
-
-#-#-  finish annotations here. Format header info into tsv and read it here
+### Make sequin-formatted fsa file
+#- input: -#
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
+#--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
+#--  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
+#--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+#--  ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
+#- output: -#
+#--  ${run_title}/sequin_and_genome_maps/*.fsa
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
    [ -s ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv ] &&\
@@ -1137,17 +1131,28 @@ if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: Making genome map and sequin files ${MDYT}${Color_Off}"
-   	## sequin fsa
 
-   	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_fsas.py ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta\
-   	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv\
-   	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps\
-   	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
+	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_fsas.py ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta\
+	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv\
+	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps\
+	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt $ISO_SOURCE\
+	  $COLLECT_DATE $META_TYPE $SRR $SRX $BIOSAMP $PRJ $MOL_TYPE $DATA_SOURCE
 
 else
 
 	echo "couldn't find files to make fsa's"
 fi
+
+### Make sequin-formatted tbl annotation file
+#- input: -#
+#--  ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.tRNAscan.tsv
+#--  ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv
+#- output: -#
+#--  ${run_title}/sequin_and_genome_maps/*.tbl
+#--  ${run_title}/final_ORF_list.txt
+#--  ${run_title}/final_genes_to_contigs_annotation_summary.tsv
+
 
 if [ -s ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ] ; then
 	#-#-  remove overlapping tRNAs/genes and replace them with tRNAs
@@ -1162,7 +1167,13 @@ else
 
 fi
 
-## sequin cmt
+### Make sequin-formatted comment (cmt) file
+#- input: -#
+#--  ${run_title}/sequin_and_genome_maps/*.fsa
+#--  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv
+#- output: -#
+#--  ${run_title}/sequin_and_genome_maps/*.cmt
+
 FSA_FILES=$( find ${run_title}/sequin_and_genome_maps -type f -name "*fsa" )
 
 if [ -n "$FSA_FILES" ] ; then
@@ -1176,7 +1187,7 @@ if [ -n "$FSA_FILES" ] ; then
 		fi
 
 		echo "StructuredCommentPrefix	##Genome-Assembly-Data-START##" > ${REC%.fsa}.cmt
-		echo "Assembly Method	whoknows" >> ${REC%.fsa}.cmt
+		echo "Assembly Method	${ASSEMBLER}" >> ${REC%.fsa}.cmt
 		echo "Genome Coverage	"$COVERAGE"x" >> ${REC%.fsa}.cmt
 		echo "Sequencing Technology	Illumina" >> ${REC%.fsa}.cmt
 		echo "Annotation Pipeline	Cenote-Taker 3" >> ${REC%.fsa}.cmt
@@ -1184,7 +1195,12 @@ if [ -n "$FSA_FILES" ] ; then
 	done
 fi
 
-## final virus seqs
+### Merge final virus seqs
+#- input: -#
+#--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
+#- output: -#
+#--  ${run_title}/${run_title}_virus_sequences.fna
+
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] ; then
 	seqkit replace --quiet -p "\s.+" ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta > ${run_title}/${run_title}_virus_sequences.fna
 
@@ -1192,7 +1208,13 @@ else
 	echo "couldn't find file for final virus seqs"
 fi
 
-## final translated ORFs
+### Merge final translated ORFs
+#- input: -#
+#--  ${run_title}/final_ORF_list.txt
+#--  ${TEMP_DIR}/reORF/reORFcalled_all.faa
+#- output: -#
+#--  ${run_title}/${run_title}_virus_AA.faa
+
 if [ -s ${run_title}/final_ORF_list.txt ] ; then
 	seqkit grep --quiet -f ${run_title}/final_ORF_list.txt\
 	  ${TEMP_DIR}/reORF/reORFcalled_all.faa | seqkit replace --quiet -p "\s.+" > ${run_title}/${run_title}_virus_AA.faa
@@ -1202,7 +1224,16 @@ else
 	echo "couldn't find list of final ORFs"
 fi
 
-## run table2asn
+### Run tbl2asn
+#- input: -#
+#--  ${run_title}/sequin_and_genome_maps/*.fsa
+#--  ${run_title}/sequin_and_genome_maps/*.tbl
+#--  ${run_title}/sequin_and_genome_maps/*.cmt
+#- output: -#
+#--  ${run_title}/sequin_and_genome_maps/*.gbf
+#--  ${run_title}/sequin_and_genome_maps/*.sqn
+#--  ${run_title}/sequin_and_genome_maps/*.val
+
 if [ -s ${TEMPLATE_FILE} ] ; then
 	tbl2asn -V vb -t ${TEMPLATE_FILE} -X C -p ${run_title}/sequin_and_genome_maps >\
 	  ${run_title}/sequin_and_genome_maps/tbl2asn.log 2>&1
@@ -1210,9 +1241,23 @@ else
 	echo "could not find template file for tbl2asn"
 fi
 
-## make summary files
+### Make run summary files
+#- input: -#
+#--  ${run_title}/final_genes_to_contigs_annotation_summary.tsv
+#--  ${TEMP_DIR}/contig_name_map.tsv
+#--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
+#--  ${run_title}/sequin_and_genome_maps/*.fsa
+#--  ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
+#--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+#- output: -#
+#--  ${run_title}/${run_title}_virus_summary.tsv
+#----	fields
+#----	(contig	input_name	organism	virus_seq_length	end_feature	gene_count	virion_hallmark_count
+#----	 rep_hallmark_count	virion_hallmark_genes	rep_hallmark_genes	taxonomy_hierarchy	ORF_caller)
+#--  ${run_title}/${run_title}_prune_summary.tsv
+#----	fields
+#----	(contig	contig_length	chunk_length	chunk_name	chunk_start	chunk_stop)
 
-# virus summary
 if [ -s ${run_title}/final_genes_to_contigs_annotation_summary.tsv ] ; then
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: Making virus summary table ${MDYT}${Color_Off}"
@@ -1226,7 +1271,7 @@ else
 	echo "couldn't find files to make run summary"
 
 fi
-# pruning summary
+
 
 # gtf/gff
 

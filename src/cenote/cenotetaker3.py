@@ -195,7 +195,7 @@ def cenotetaker3():
     optional_args.add_argument("--phrogs", dest="PHROGS", type=str2bool, default="True", 
                             help='Default: True -- Use PHROG HMMs to add annotations? See github repo for DB download \
                                 instructions')
-    optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="True", 
+    optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="False", 
                                help='use snakemake file (instead of bash)?')
     optional_args.add_argument("--until", dest="UNTIL", type=str, default="all", help='run snakemake until')
 

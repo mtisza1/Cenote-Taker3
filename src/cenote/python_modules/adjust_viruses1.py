@@ -13,6 +13,8 @@ gene_annotation_file = sys.argv[2]
 
 out_dir = sys.argv[3]
 
+PROPHAGE = sys.argv[4]
+
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
@@ -40,7 +42,7 @@ for name, group in grouped_df:
 
     dtr_status = group['dtr_seq'].agg(pd.Series.mode)
 
-    if len(dtr_status) == 0 and int(contig_length1.iloc[0]) >=10000:
+    if len(dtr_status) == 0 and int(contig_length1.iloc[0]) >=10000 and PROPHAGE == "True":
         ## lift genes from each chunk
 
         ## @name is how to call the name variable in query
@@ -82,7 +84,9 @@ adjusted_gene_df.to_csv(adjusted_gene_file, sep = "\t", index = False)
 
 bed_df = adjusted_gene_df[['contig', 'chunk_start', 'chunk_stop', 'chunk_name']].drop_duplicates()
 
-bed_df['new_chunk'] = np.where(bed_df['chunk_name'] == "NA", bed_df['contig'], bed_df['contig'] + "@" + bed_df['chunk_name'])
+bed_df['new_chunk'] = np.where(bed_df['chunk_name'] == "NA", 
+                               bed_df['contig'], 
+                               bed_df['contig'] + "@" + bed_df['chunk_name'])
 
 bed_df = bed_df.drop('chunk_name', axis = 1)
 

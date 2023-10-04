@@ -66,6 +66,10 @@ except:
 
 ## merge all files
 merge_df = pd.merge(main_annot_df, name_df, on = "contig", how = "left")
+
+tax_df['chunk_name'] = tax_df['chunk_name'].fillna("NaN")
+merge_df['chunk_name'] = merge_df['chunk_name'].fillna("NaN")
+
 merge_df = pd.merge(merge_df, tax_df, on = ["contig", "chunk_name"], how = "left")
 merge_df = pd.merge(merge_df, gcode_df, on = "contig", how = "left")
 
@@ -105,6 +109,12 @@ for seq_file in finalseq_list:
 
 desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
 
+
+## ensure merge gets same data type
+desc_df['chunk_name'] = desc_df['chunk_name'].fillna("NaN")
+merge_df['chunk_name'] = merge_df['chunk_name'].fillna("NaN")
+
+
 org_info_df = pd.merge(merge_df, desc_df, on = ["contig", "chunk_name"], how = "left")
 
 org_info_df['chunk_length'] = np.where(org_info_df['chunk_length'].isnull(), 
@@ -143,6 +153,9 @@ for name, group in grouped_df:
 summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'virus_seq_length', 
                                                  'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',
                                                  'virion_hallmark_genes', 'rep_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
+
+
+summary_df['virus_seq_length'] = summary_df['virus_seq_length'].fillna(0)
 
 summary_df = summary_df.astype(dtype= {"virus_seq_length": "int64"})
 

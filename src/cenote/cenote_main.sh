@@ -109,27 +109,6 @@ MDYT=$( date +"%m-%d-%y---%T" )
 echo -e "${BBlack}time update: configuring run directory  ${MDYT}${Color_Off}"
 
 
-### checking validity of run_title
-#if [[ "$run_title" =~ ^[a-zA-Z0-9_]+$ ]] && [ ${#run_title} -le 18 ] ; then 
-#	echo $run_title ; 
-#else
-#	echo "$run_title is not a valid name for the run title ( -r argument)"
-#	echo " the run title needs to be only letters, numbers and underscores (_) and 18 characters or less. Exiting."
-#	exit
-#fi
-
-
-### Making output folder
-#if [ ! -d "$run_title" ]; then
-#	mkdir "$run_title"
-#else
-	## instead of overwriting previous run
-#	rand_dir=$( head /dev/urandom | tr -dc A-Za-z0-9 | head -c 3 ; echo '' )
-#	DAY1=$( date +"%m-%d-%y" )
-#	mv ${run_title}/ ${run_title}_old_${DAY1}_${rand_dir} 
-#	mkdir ${run_title}
-#fi 
-
 if [ ! -d "${run_title}/ct2_tmp" ]; then
 	mkdir ${run_title}/ct2_tmp
 fi
@@ -196,7 +175,6 @@ fi
 #-- ${TEMP_DIR}/contig_name_map.tsv
 #-- ${TEMP_DIR}/split_orig_contigs/*fasta (1 or more)
 #-- ${TEMP_DIR}/split_orig_contigs/*prod.faa (1 or more)
-
 
 if [ -s ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta ] ; then
 	if [ ! -d "${TEMP_DIR}/split_orig_contigs" ]; then
@@ -509,32 +487,33 @@ else
 		echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv or ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv"
 		exit
 	fi
-
-	## redo ORF calls for everything. Some need phanotate, some were rotated
-	if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] || [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
-		MDYT=$( date +"%m-%d-%y---%T" )
-		echo -e "${BBlue}redoing ORF calls for each sequence ${MDYT}${Color_Off}"
-
-
-		## adding contigs that had no hits in mmseqs search to list of contigs that need prodigal ORF calling
-		if [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
-			cat ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
-		fi
-
-		if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] ; then
-			cat ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
-		fi
-		if [ -s ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt ] ; then
-			grep -v -f ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt\
-			  ${TEMP_DIR}/contigs_to_keep.txt >> ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
-		fi
-
-
-	else
-		echo "couldn't find prodigal_seqs1.txt or phanotate_seqs1.txt"
-		exit
-	fi
 fi
+
+## redo ORF calls for everything. Some need phanotate, some were rotated
+if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] || [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
+	MDYT=$( date +"%m-%d-%y---%T" )
+	echo -e "${BBlue}redoing ORF calls for each sequence ${MDYT}${Color_Off}"
+
+
+	## adding contigs that had no hits in mmseqs search to list of contigs that need prodigal ORF calling
+	if [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
+		cat ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
+	fi
+
+	if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] ; then
+		cat ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt >> ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt
+	fi
+	if [ -s ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt ] ; then
+		grep -v -f ${TEMP_DIR}/hallmark_tax/taxed_seqs1.txt\
+			${TEMP_DIR}/contigs_to_keep.txt >> ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
+	fi
+
+
+else
+	echo "couldn't find prodigal_seqs1.txt or phanotate_seqs1.txt"
+	exit
+fi
+
 
 ### Prodigal for hallmark, rotated seqs
 #- input: -#
@@ -838,7 +817,7 @@ if [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] && [ -s ${C_D
 	  ${TEMP_DIR}/reORF/phan_split ${TEMP_DIR}/reORF/prod_split ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${TEMP_DIR}/reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv ${C_DBS}/viral_cdds_and_pfams_191028.txt \
-	  ${TEMP_DIR}/assess_prune ${HALL_TYPE}
+	  ${TEMP_DIR}/assess_prune ${HALL_TYPE} ${PROPHAGE}
 
 else
 	echo "couldn't start assess and prune script"
@@ -897,7 +876,7 @@ if [ -s ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv ] ; then
 	echo -e "${BPurple}time update: reconfiguring gene/contig coordinates after prune ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/adjust_viruses1.py ${TEMP_DIR}/assess_prune/indiv_seqs\
-	  ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv ${TEMP_DIR}
+	  ${TEMP_DIR}/assess_prune/contig_gene_annotation_summary.tsv ${TEMP_DIR} ${PROPHAGE}
 
 
 	seqkit subseq --quiet -j $CPU --bed ${TEMP_DIR}/prune_coords.bed ${TEMP_DIR}/oriented_hallmark_contigs.fasta |\

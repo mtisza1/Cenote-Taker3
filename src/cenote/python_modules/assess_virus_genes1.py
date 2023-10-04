@@ -41,6 +41,8 @@ out_dir = sys.argv[9]
 
 hall_type = sys.argv[10]
 
+PROPHAGE = sys.argv[11]
+
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
@@ -140,7 +142,8 @@ try:
     virion_ppyh_df["evidence_acession"] = virion_ppyh_df.apply(
         lambda x: x["target"][x["slash_pos"]+1:x["fdash_pos"]], axis = 1)
 
-    virion_ppyh_df["evidence_description"] = virion_ppyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
+    virion_ppyh_df["evidence_description"] = virion_ppyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], 
+                                                                  axis = 1)
 
     virion_ppyh_df = virion_ppyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
 
@@ -165,7 +168,8 @@ try:
     comm_pyh_df["evidence_acession"] = comm_pyh_df.apply(
         lambda x: x["target"][x["slash_pos"]+1:x["fdash_pos"]], axis = 1)
 
-    comm_pyh_df["evidence_description"] = comm_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
+    comm_pyh_df["evidence_description"] = comm_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], 
+                                                            axis = 1)
 
     comm_pyh_df = comm_pyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
 
@@ -190,7 +194,8 @@ try:
     rep_pyh_df["evidence_acession"] = rep_pyh_df.apply(
         lambda x: x["target"][x["slash_pos"]+1:x["fdash_pos"]], axis = 1)
 
-    rep_pyh_df["evidence_description"] = rep_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], axis = 1)
+    rep_pyh_df["evidence_description"] = rep_pyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], 
+                                                          axis = 1)
 
     rep_pyh_df = rep_pyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
 
@@ -261,14 +266,13 @@ try:
 
     contig_gene_df = basal_df.merge(gene_ann_df, on = "gene_name", how = "left")
 
-    contig_gene_df['vscore_category'] = np.where(contig_gene_df['vscore_category'].isna(), 'hypothetical_protein',
-                                          contig_gene_df['vscore_category'])
+    contig_gene_df['vscore_category'] = np.where(contig_gene_df['vscore_category'].isna(), 
+                                                 'hypothetical_protein',
+                                                 contig_gene_df['vscore_category'])
     
-    contig_gene_df['evidence_description'] = np.where(contig_gene_df['evidence_description'].isna(), 'hypothetical protein',
-                                          contig_gene_df['evidence_description'])
-    #print("contig_gene_df")
-    #print(contig_gene_df)
-    #print(contig_gene_df.contig_length)
+    contig_gene_df['evidence_description'] = np.where(contig_gene_df['evidence_description'].isna(), 
+                                                      'hypothetical protein',
+                                                      contig_gene_df['evidence_description'])
 
 except:
     print("nope")
@@ -276,21 +280,15 @@ except:
 ## save annotation table to file
 contig_gene_outfile = os.path.join(out_dir, "contig_gene_annotation_summary.tsv")
 
-contig_gene_df.to_csv(contig_gene_outfile,
-                        sep = "\t", index = False)
+contig_gene_df.to_csv(contig_gene_outfile, sep = "\t", index = False)
 
 ## save hallmark genes in bed format
 hallmark_df = contig_gene_df.query("Evidence_source == 'hallmark_hmm'")
 hallmark_df = hallmark_df[['contig', 'gene_start', 'gene_stop']]
 
-#print("hallmark_df")
-
-#print(hallmark_df)
-
 hallmark_gene_outfile = os.path.join(out_dir, "contig_gene_annotation_summary.hallmarks.bed")
 
-hallmark_df.to_csv(hallmark_gene_outfile,
-                        sep = "\t", index = False, header = False)
+hallmark_df.to_csv(hallmark_gene_outfile, sep = "\t", index = False, header = False)
 
 
 #try:
@@ -300,9 +298,12 @@ grouped_df = contig_gene_df.query("contig_length >= 10000")\
 
 
 try:
-    for name, group in grouped_df:
+    if PROPHAGE == "True":
+        for name, group in grouped_df:
 
-        prune_chunks(name, group, fig_out_dir, hall_type)
+            prune_chunks(name, group, fig_out_dir, hall_type)
+    else:
+        print("--prune_prophage set to False, not pruning")
     
 except:
     print("No non-DTR virus contigs >= 10,000 nt. So pruning will not happen")

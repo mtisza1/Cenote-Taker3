@@ -22,9 +22,12 @@ if not os.path.isdir(out_dir):
 # load gene/contig table
 gene_contig_df = pd.read_csv(gene_contig_file, sep = "\t")
 
+gene_contig_df['chunk_name'] = gene_contig_df['chunk_name'].fillna("NaN")
+
 ## quick_df is for adding chunk info to trnascan table via merge
 quick_df = gene_contig_df[['contig', 'chunk_name', 'chunk_length', 
                            'chunk_start', 'chunk_stop', 'contig_length']].drop_duplicates()
+
 
 
 # load and format tRNA table from tRNAscan-SE
@@ -42,6 +45,10 @@ if  os.path.isfile(tRNA_table) and os.path.getsize(tRNA_table) > 0:
 
     tRNA_df['chunk_name'] = tRNA_df.apply(
         lambda x: x["con_chunk"][x["at_pos"]+1:-1], axis = 1)
+    
+    tRNA_df['chunk_name'] = np.where(tRNA_df['chunk_name'] == tRNA_df['contig'], 
+                                     "NaN",
+                                     tRNA_df['chunk_name'])
 
     tRNA_df['gene_start'] = np.where(tRNA_df['gene_c1'] < tRNA_df['gene_c2'], tRNA_df['gene_c1'], tRNA_df['gene_c2'])
 
@@ -59,6 +66,9 @@ if  os.path.isfile(tRNA_table) and os.path.getsize(tRNA_table) > 0:
     tRNA_df = tRNA_df[['contig', 'chunk_name', 'gene_start', 'gene_stop', 'gene_name', 
                     'gene_orient', 'evidence_description', 'evidence_acession', 'Evidence_source']]
     
+    tRNA_df['chunk_name'] = tRNA_df['chunk_name'].fillna("NaN")
+    quick_df['chunk_name'] = quick_df['chunk_name'].fillna("NaN")
+
     tRNA_plus_df = pd.merge(tRNA_df, quick_df, on = ["contig", "chunk_name"], how = "left")
 
     # concat tables

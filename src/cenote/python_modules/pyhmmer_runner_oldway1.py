@@ -51,13 +51,6 @@ if not splitAA_list:
     print("no files found for pyhmmer in " + str(input_dir))
     exit
 
-## get lengths of each hmm
-## based on code from https://github.com/althonos/pyhmmer/issues/27#issuecomment-1713131288
-hmm_lengths = {}
-with pyhmmer.plan7.HMMFile(which_DB) as hmm_file:
-    for hmm in hmm_file:
-        hmm_lengths[hmm.name.decode()] = len(hmm.consensus)
-
 hmmscan_list = []
 with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
     for alignments in pool.map(hmmscanner, splitAA_list):
@@ -70,19 +63,10 @@ with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
                 target_acc = hit.accession
                 full_seq_evalue = hit.evalue
                 seq_pvalue = hit.pvalue      
-                n_aligned_positions = len(
-                    hit.best_domain.alignment.hmm_sequence
-                ) - hit.best_domain.alignment.hmm_sequence.count(".")
-                hmm_coverage = (
-                    n_aligned_positions / hmm_lengths[hit.best_domain.alignment.hmm_name.decode()]
-                )
-                
-                hmmscan_list.append([quer1, contig, target_name, full_seq_evalue, seq_pvalue, 
-                                     n_aligned_positions, hmm_coverage])
+                hmmscan_list.append([quer1, contig, target_name, full_seq_evalue, seq_pvalue])
 
-hmmscan_pools_df = pd.DataFrame(hmmscan_list, columns=["ORFquery", "contig", "target", "evalue", 
-                                                       "pvalue", "n_aligned_positions", "hmm_coverage"])\
-    .sort_values('evalue').drop_duplicates('ORFquery').query("hmm_coverage > 0.75 & evalue <= @evalue_cut")
+hmmscan_pools_df = pd.DataFrame(hmmscan_list, columns=["ORFquery", "contig", "target", "evalue", "pvalue"])\
+    .sort_values('evalue').drop_duplicates('ORFquery').query("evalue <= @evalue_cut")
 
 if not hmmscan_pools_df.empty:
     hmmscan_output_file = os.path.join(out_dir, "pyhmmer_report_AAs.tsv")

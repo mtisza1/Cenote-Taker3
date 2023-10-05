@@ -244,10 +244,10 @@ if [ -n "$SPLIT_ORIG_AAs" ] ; then
 	echo -e "${BRed}time update: running pyhmmer on all ORFs  ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_virion\
-	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-8
+	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-4
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_rep\
-	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-8
+	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-4
 
 	python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
 	  ${TEMP_DIR}/orig_pyhmmer_rep ${HALLMARK_MINIMUM} ${HALL_TYPE} ${TEMP_DIR}
@@ -687,10 +687,10 @@ if [ -n "$SPLIT_REORF_AAs" ] ; then
 
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/virion_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-6
+	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-2
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/rep_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-6
+	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-2
 
 	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] && 
 	   [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
@@ -731,7 +731,7 @@ if [ -n "$SECOND_REORF_AAs" ] ; then
 
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer2_split ${TEMP_DIR}/comm_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m $CPU 1e-4
+	  ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m $CPU 1e-6
 
 
 	if [ -s ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
@@ -923,7 +923,7 @@ if [ "${PHROGS}" == "True" ]  && [ -s ${TEMP_DIR}/hypothetical_proteins.after_ch
 
 
 		python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_phrogs_split ${TEMP_DIR}/phrogs_pyhmmer\
-		  ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m $CPU 1e-3
+		  ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m $CPU 1e-2
 
 		if [ -s ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
 			tail -n+2 ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/phrogs_pyhmmer/hit_this_round1.txt

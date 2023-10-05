@@ -140,8 +140,8 @@ def cenotetaker3():
                             help=' ORF caller for identified viruses. default: Cenote-Taker\
                                 will choose based on preliminary taxonomy call (phages = phanotate, others = prodigal)\
                                 prodigal: prodigal (meta mode) for all virus sequences. phanotate: phanotate for \
-                                all virus sequences. Note: phanotate takes longer than prodigal')
-    ### add argument to force ORFcaller (prodigal or phanotate)
+                                all virus sequences. Note: phanotate takes longer than prodigal, exponentially so \
+                                for LONG input contigs')
 
     ## should be host prediction, instead
     #optional_args.add_argument("--crispr_file", dest="CRISPR_FILE", type=str, default='none', help='Tab-separated file with CRISPR hits in the following format: CONTIG_NAME HOST_NAME NUMBER_OF_MATCHES. You could use this tool: https://github.com/edzuf/CrisprOpenDB. Then reformat for Cenote-Taker 2')

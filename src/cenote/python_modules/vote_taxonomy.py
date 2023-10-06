@@ -17,35 +17,44 @@ if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
 ## load, parse, combine tables
-tax_df = pd.read_csv(mmseqs2_tax_table, header = None, sep = "\t",
-                     names = ["query","target","pident","alnlen","evalue","theader","taxlineage"])\
-                     .sort_values('evalue').drop_duplicates('query').query("evalue <= 1e-3")
+if os.path.isfile(mmseqs2_tax_table) and os.path.getsize(mmseqs2_tax_table) > 0:
+    tax_df = pd.read_csv(mmseqs2_tax_table, header = None, sep = "\t",
+                        names = ["query","target","pident","alnlen","evalue","theader","taxlineage"])\
+                        .sort_values('evalue').drop_duplicates('query').query("evalue <= 1e-3")
 
-gene_contig_df = pd.read_csv(annotation_table, sep = "\t")[['contig', 'chunk_name', 'gene_start',
-                                                            'gene_stop', 'gene_name']]
+    gene_contig_df = pd.read_csv(annotation_table, sep = "\t")[['contig', 'chunk_name', 'gene_start',
+                                                                'gene_stop', 'gene_name']]
 
-chunk_wise_df = gene_contig_df.merge(tax_df, left_on = "gene_name", right_on = "query", how = "inner")
+    chunk_wise_df = gene_contig_df.merge(tax_df, left_on = "gene_name", right_on = "query", how = "inner")
 
-## break out all the taxa of interest
-chunk_wise_df['genus'] = np.where(chunk_wise_df['taxlineage'].str.contains(";g_"), 
-                                     chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";g_")+3:].split(";")[0]), 
-                                     "NA")
+    ## break out all the taxa of interest
+    chunk_wise_df['genus'] = np.where(chunk_wise_df['taxlineage'].str.contains(";g_"), 
+                                        chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";g_")+3:].split(";")[0]), 
+                                        "NA")
 
-chunk_wise_df['family'] = np.where(chunk_wise_df['taxlineage'].str.contains(";f_"), 
-                                     chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";f_")+3:].split(";")[0]), 
-                                     "NA")
+    chunk_wise_df['family'] = np.where(chunk_wise_df['taxlineage'].str.contains(";f_"), 
+                                        chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";f_")+3:].split(";")[0]), 
+                                        "NA")
 
-chunk_wise_df['order'] = np.where(chunk_wise_df['taxlineage'].str.contains(";o_"), 
-                                     chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";o_")+3:].split(";")[0]), 
-                                     "NA")
+    chunk_wise_df['order'] = np.where(chunk_wise_df['taxlineage'].str.contains(";o_"), 
+                                        chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";o_")+3:].split(";")[0]), 
+                                        "NA")
 
-chunk_wise_df['taxclass'] = np.where(chunk_wise_df['taxlineage'].str.contains(";c_"), 
-                                     chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";c_")+3:].split(";")[0]), 
-                                     "NA")
+    chunk_wise_df['taxclass'] = np.where(chunk_wise_df['taxlineage'].str.contains(";c_"), 
+                                        chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";c_")+3:].split(";")[0]), 
+                                        "NA")
 
-chunk_wise_df['phylum'] = np.where(chunk_wise_df['taxlineage'].str.contains(";p_"), 
-                                     chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";p_")+3:].split(";")[0]), 
-                                     "NA")
+    chunk_wise_df['phylum'] = np.where(chunk_wise_df['taxlineage'].str.contains(";p_"), 
+                                        chunk_wise_df['taxlineage'].apply(lambda st: st[st.find(";p_")+3:].split(";")[0]), 
+                                        "NA")
+else:
+    ## fill in empty values when mmseqs tax search returns no hits
+    chunk_wise_df = pd.read_csv(annotation_table, sep = "\t")[['contig', 'chunk_name', 'gene_start',
+                                                                'gene_stop', 'gene_name']]
+    
+    chunk_wise_df[['genus', 'family', 'order', 'taxclass', 'phylum', 
+                   'target', 'alnlen', 'evalue', 'theader', 'taxlineage']] = "NA"
+    chunk_wise_df['pident'] = 0
 
 ## group by chunk
 group_chunk_df = chunk_wise_df.groupby(['contig', 'chunk_name'], dropna = False)

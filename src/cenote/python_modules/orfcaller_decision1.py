@@ -17,42 +17,51 @@ repeat_table = sys.argv[2]
 
 out_dir = sys.argv[3]
 
-tax_df = pd.read_csv(mmseqs2_tax_table, header = None, sep = "\t",
-                     names = ["query","target","pident","alnlen","evalue","theader","taxlineage"])\
-                     .sort_values('evalue').drop_duplicates('query').query("evalue <= 1e-3")
+if os.path.isfile(mmseqs2_tax_table) and os.path.getsize(mmseqs2_tax_table) > 0:
+    tax_df = pd.read_csv(mmseqs2_tax_table, header = None, sep = "\t",
+                        names = ["query","target","pident","alnlen","evalue","theader","taxlineage"])\
+                        .sort_values('evalue').drop_duplicates('query').query("evalue <= 1e-3")
 
-tax_df['ORFcaller'] = np.where(tax_df['taxlineage']
-                               .str.contains(
-                                   "Caudoviricetes|Crassvirales|Malgrandaviricetes|Tubulavirales|Leviviricetes|Duplopiviricetes|Kalamavirales|Vinavirales|Autolykiviridae",
-                                   case = False), 'phanotate', 'prodigal')
+    tax_df['ORFcaller'] = np.where(tax_df['taxlineage']
+                                .str.contains(
+                                    "Caudoviricetes|Crassvirales|Malgrandaviricetes|Tubulavirales|Leviviricetes|Duplopiviricetes|Kalamavirales|Vinavirales|Autolykiviridae",
+                                    case = False), 'phanotate', 'prodigal')
 
-tax_df["pos"] = tax_df["query"].str.rfind("_")
+    tax_df["pos"] = tax_df["query"].str.rfind("_")
 
-tax_df["contig"] = tax_df.apply(lambda x: x["query"][0:x["pos"]], axis = 1)
+    tax_df["contig"] = tax_df.apply(lambda x: x["query"][0:x["pos"]], axis = 1)
 
-##override phanotate call due to maximum length
-length_df = pd.read_csv(repeat_table, sep = "\t")[['contig', 'out_length_contig']]
+    ##override phanotate call due to maximum length
+    length_df = pd.read_csv(repeat_table, sep = "\t")[['contig', 'out_length_contig']]
 
-merge_tax_df = length_df.merge(tax_df, on = "contig", how = "left")
+    merge_tax_df = length_df.merge(tax_df, on = "contig", how = "left")
 
-merge_tax_df['ORFcaller'] = np.where(merge_tax_df['ORFcaller'].isnull(), 
-                                     'prodigal', merge_tax_df['ORFcaller'])
-
-
-### Forcing long contigs (over 300 kb) into prodigal as phanotate does not handle these well
-merge_tax_df['ORFcaller'] = np.where(merge_tax_df['out_length_contig'] >= 300000, 
-                                     'prodigal', merge_tax_df['ORFcaller'])
-
-merge_tax_df['Note'] = np.where(merge_tax_df['out_length_contig'] >= 300000, 
-                                     'over phanotate length limit', 'NA')
+    merge_tax_df['ORFcaller'] = np.where(merge_tax_df['ORFcaller'].isnull(), 
+                                        'prodigal', merge_tax_df['ORFcaller'])
 
 
-### I don't really need to make this file, just for dev
-tax_label_file = os.path.join(out_dir, "orf_caller_each_seq.tsv")
+    ### Forcing long contigs (over 300 kb) into prodigal as phanotate does not handle these well
+    merge_tax_df['ORFcaller'] = np.where(merge_tax_df['out_length_contig'] >= 300000, 
+                                        'prodigal', merge_tax_df['ORFcaller'])
 
-merge_tax_df.to_csv(tax_label_file, sep = "\t", index = False)
+    merge_tax_df['Note'] = np.where(merge_tax_df['out_length_contig'] >= 300000, 
+                                        'over phanotate length limit', 'NA')
 
-ORFcaller_majority = merge_tax_df.groupby("contig")['ORFcaller'].agg(pd.Series.mode).to_frame()
+
+    ### I don't really need to make this file, just for dev
+    tax_label_file = os.path.join(out_dir, "orf_caller_each_seq.tsv")
+
+    merge_tax_df.to_csv(tax_label_file, sep = "\t", index = False)
+
+    ORFcaller_majority = merge_tax_df.groupby("contig")['ORFcaller'].agg(pd.Series.mode).to_frame()
+else:
+    print("mmseqs2 hit table was empty, setting ORF caller to prodigal for all input seqs.")
+
+    length_df = pd.read_csv(repeat_table, sep = "\t")[['contig']]
+
+    length_df['ORFcaller'] = 'prodigal'
+
+    ORFcaller_majority = length_df.set_index('contig')
 
 
 ##save lists to files

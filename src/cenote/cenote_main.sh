@@ -63,29 +63,29 @@ if [ "${READS}" != "none" ] ; then
 fi
 
 ### check databases exist in specified path
-if [ -z ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m ] ; then
-	echo "couldn't find virion hallmark hmm DB at ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m"
+if [ -z ${C_DBS}/hmmscan_DBs/v3.0/Virion_HMMs.h3m ] ; then
+	echo "couldn't find virion hallmark hmm DB at ${C_DBS}/hmmscan_DBs/v3.0/Virion_HMMs.h3m"
 	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
-if [ -z ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m ] ; then
-	echo "couldn't find replication hallmark hmm DB at ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m"
+if [ -z ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m ] ; then
+	echo "couldn't find replication hallmark hmm DB at ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m"
 	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
-if [ -z ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m ] ; then
-	echo "couldn't find common virus hmm DB at ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m"
+if [ -z ${C_DBS}/hmmscan_DBs/v3.0/Useful_Annotation_HMMs.h3m ] ; then
+	echo "couldn't find common virus hmm DB at ${C_DBS}/hmmscan_DBs/v3.0/Useful_Annotation_HMMs.h3m"
 	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
 fi
 
-if [ -z ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m ] ; then
-	echo "couldn't find phrogs subset hmm DB at ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m"
+if [ -z ${C_DBS}/hmmscan_DBs/v3.0/phrogs_for_ct.h3m ] ; then
+	echo "couldn't find phrogs subset hmm DB at ${C_DBS}/hmmscan_DBs/v3.0/phrogs_for_ct.h3m"
 	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
 	echo "exiting"
 	exit
@@ -158,7 +158,7 @@ echo " "
 
 if [ -s ${original_contigs} ] ; then
 	
-	seqkit seq --quiet -m $LENGTH_MINIMUM $original_contigs |\
+	seqkit seq --quiet -g -m $LENGTH_MINIMUM $original_contigs |\
 	  seqkit replace --quiet -p '^' -r ${run_title}_{nr}@#@# |\
 	  sed 's/@#@#/ /g' > ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 
@@ -244,10 +244,10 @@ if [ -n "$SPLIT_ORIG_AAs" ] ; then
 	echo -e "${BRed}time update: running pyhmmer on all ORFs  ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_virion\
-	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-4
+	  ${C_DBS}/hmmscan_DBs/v3.0/Virion_HMMs.h3m $CPU 1e-7
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_rep\
-	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-4
+	  ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m $CPU 1e-7
 
 	python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
 	  ${TEMP_DIR}/orig_pyhmmer_rep ${HALLMARK_MINIMUM} ${HALL_TYPE} ${TEMP_DIR}
@@ -476,7 +476,7 @@ else
 	#----	fields
 	#----	(contig	out_length_contig	query	target	pident	alnlen	evalue	theader	taxlineage	ORFcaller	pos	Note)
 
-	if [ -s ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv ] && [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
+	if [ -e ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv ] && [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
 		MDYT=$( date +"%m-%d-%y---%T" )
 		echo -e "${BGreen}choosing ORF caller for each sequence ${MDYT}${Color_Off}"
 
@@ -687,20 +687,26 @@ if [ -n "$SPLIT_REORF_AAs" ] ; then
 
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/virion_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/virus_specific_baits_plus_missed6a.h3m $CPU 1e-2
+	  ${C_DBS}/hmmscan_DBs/v3.0/Virion_HMMs.h3m $CPU 1e-5
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/rep_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/virus_replication_clusters3.h3m $CPU 1e-2
+	  ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m $CPU 1e-5
 
-	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] && 
-	   [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
-		awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
-		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+
+		if [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+			awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+			  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+		else
+			awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+			  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+		fi
 
 		echo "$SPLIT_REORF_AAs" | while read AA ; do
 			BASE_AA=$( basename $AA )
 			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt $AA > ${TEMP_DIR}/reORF_pyhmmer2_split/${BASE_AA%.faa}.no1.faa
 		done
+
 
 	else
 		echo "$SPLIT_REORF_AAs" | while read AA ; do
@@ -731,7 +737,7 @@ if [ -n "$SECOND_REORF_AAs" ] ; then
 
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer2_split ${TEMP_DIR}/comm_reORF_pyhmmer\
-	  ${C_DBS}/hmmscan_DBs/useful_hmms_baits_and_not2a.h3m $CPU 1e-6
+	  ${C_DBS}/hmmscan_DBs/v3.0/Useful_Annotation_HMMs.h3m $CPU 1e-6
 
 
 	if [ -s ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
@@ -923,7 +929,7 @@ if [ "${PHROGS}" == "True" ]  && [ -s ${TEMP_DIR}/hypothetical_proteins.after_ch
 
 
 		python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_phrogs_split ${TEMP_DIR}/phrogs_pyhmmer\
-		  ${C_DBS}/hmmscan_DBs/phrogs_for_ct.h3m $CPU 1e-2
+		  ${C_DBS}/hmmscan_DBs/v3.0/phrogs_for_ct.h3m $CPU 1e-4
 
 		if [ -s ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
 			tail -n+2 ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/phrogs_pyhmmer/hit_this_round1.txt
@@ -1078,7 +1084,7 @@ if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 		echo "couldn't find ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa"
 	fi
 
-	if [ -s ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv ] ; then
+	if [ -e ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv ] ; then
 
 		##python script to merge these results with gene annotation table, find best hit, decide taxon
 		python ${CENOTE_SCRIPTS}/python_modules/vote_taxonomy.py ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv\

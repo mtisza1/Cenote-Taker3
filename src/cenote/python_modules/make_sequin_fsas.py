@@ -127,11 +127,11 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
             topology = "linear"
 
     # here's the whole header string
-    header = f">{str(seq_record.id)} [organism={organism} sp. ct{randID}] [gcode={gcode}] \
-        [topology={topology}] [note: taxonomic lineage {lineage}] [isolation_source={ISO_SOURCE}] \
-   	    [collection_date={COLLECT_DATE}] [metagenome_source={META_TYPE}] [SRA={SRR}] \
-        [note=genome binned from sequencing reads available in {SRX}] [Biosample={BIOSAMP}] \
-        [Bioproject={PRJ}] [moltype={MOL_TYPE}] [isolation_source={DATA_SOURCE}]"
+    header = (f">{str(seq_record.id)} [organism={organism} sp. ct{randID}] [gcode={gcode}] "
+        f"[topology={topology}] [note: taxonomic lineage {lineage}] [isolation_source={ISO_SOURCE}] "
+   	    f"[collection_date={COLLECT_DATE}] [metagenome_source={META_TYPE}] [SRA={SRR}] "
+        f"[note=genome binned from sequencing reads available in {SRX}] [Biosample={BIOSAMP}] "
+        f"[Bioproject={PRJ}] [moltype={MOL_TYPE}] [isolation_source={DATA_SOURCE}]")
     
     seq_output_file = os.path.join(out_dir, str(seq_record.id) + ".fsa")
 

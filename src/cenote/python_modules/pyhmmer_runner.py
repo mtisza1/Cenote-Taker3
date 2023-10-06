@@ -82,7 +82,8 @@ with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
 
 hmmscan_pools_df = pd.DataFrame(hmmscan_list, columns=["ORFquery", "contig", "target", "evalue", 
                                                        "pvalue", "n_aligned_positions", "hmm_coverage"])\
-    .sort_values('evalue').drop_duplicates('ORFquery').query("hmm_coverage > 0.75 & evalue <= @evalue_cut")
+    .query("evalue <= 0.1").query("hmm_coverage >= 0.8 | evalue <= @evalue_cut")\
+    .sort_values('evalue').drop_duplicates('ORFquery')
 
 if not hmmscan_pools_df.empty:
     hmmscan_output_file = os.path.join(out_dir, "pyhmmer_report_AAs.tsv")

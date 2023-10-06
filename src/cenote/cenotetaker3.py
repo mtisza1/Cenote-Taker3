@@ -203,6 +203,14 @@ def cenotetaker3():
 
     args = parser.parse_args()
 
+    ## annotation mode overrides other arguments
+    if str(args.ANNOTATION_MODE) == "True":
+        args.LIN_MINIMUM_DOMAINS = 0
+        args.CIRC_MINIMUM_DOMAINS = 0
+        args.circ_length_cutoff = 1
+        args.linear_length_cutoff = 1
+        args.PROPHAGE = "False"
+
     ## make out directory (rename any existing directory)
     if not os.path.isdir(str(args.run_title)):
         os.makedirs(str(args.run_title))

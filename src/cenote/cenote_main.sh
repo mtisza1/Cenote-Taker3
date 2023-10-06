@@ -250,7 +250,7 @@ if [ -n "$SPLIT_ORIG_AAs" ] ; then
 	  ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m $CPU 1e-7
 
 	python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
-	  ${TEMP_DIR}/orig_pyhmmer_rep ${HALLMARK_MINIMUM} ${HALL_TYPE} ${TEMP_DIR}
+	  ${TEMP_DIR}/orig_pyhmmer_rep ${HALLMARK_MINIMUM} ${HALL_TYPE} ${TEMP_DIR} ${TEMP_DIR}/contig_name_map.tsv
 
 else
 	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/split_orig_contigs"

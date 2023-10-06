@@ -26,6 +26,8 @@ hallmark_type = sys.argv[4]
 
 out_dir = sys.argv[5]
 
+names_file = sys.argv[6]
+
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
     
@@ -42,8 +44,11 @@ except:
     print("no rep hmm tsv")
     rep_dt  = pd.DataFrame(columns = ['contig', 'rep_hit_count'])
 
+names_dt = pd.read_csv(names_file, sep = "\t", names=['contig', 'original_name'])[['contig']]
 
 merge_dt = pd.merge(virion_dt, rep_dt, on = 'contig', how = 'outer')
+
+merge_dt = pd.merge(merge_dt, names_dt, on = 'contig', how = 'outer')
 
 merge_dt = merge_dt.fillna(0)
 

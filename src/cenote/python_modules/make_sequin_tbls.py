@@ -145,7 +145,7 @@ ORF_df.to_csv(ORF_list_out, sep = "\t", index = False, header = False)
 
 
 ## need a chunk value for all viruses to properly group
-merged_df['chunk_name'] = merged_df['chunk_name'].fillna("nochunk")
+merged_df['chunk_name'] = merged_df['chunk_name'].fillna("NaN")
 
 chunk_grouped_df = merged_df.groupby(['contig', 'chunk_name'], dropna = False)
 
@@ -162,7 +162,7 @@ for name, seq_group in chunk_grouped_df:
 
     # header line for tbl
     # first for chunked/pruned
-    if not name[1] == "nochunk":
+    if not name[1] == "NaN":
         tbl_output_file = os.path.join(out_dir, name[0] + "@" + name[1] + ".tbl")
 
         print(f">Feature {name[0]}@{name[1]} Table1", file = open(tbl_output_file, "a"))

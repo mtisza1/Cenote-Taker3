@@ -103,4 +103,12 @@ cenotetaker3 -c my_virus_contigs.fna -r my_virs_ct3 -p F -am T
 `Cenote-Taker 3` is under active development, so please open an issue if anything seems unusual or any errors occur. It's likely that I've not tested every parameter combination, and bugs will be a simple fix.
 
 
-### Help Menu
+### To-do list
+
+* Add module to use `HHsearch` for gene annotation
+
+* Add RDRP database as option for virus discovery
+
+* Nucleotide or kmer-based species-level taxonomy
+
+* Incorporate `prodigal-gv` as alternative ORF caller

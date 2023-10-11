@@ -1,0 +1,21 @@
+name: ct3_beta
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - seqkit
+  - prodigal
+  - hmmer
+  - mmseqs2
+  - bioawk
+  - taxonkit
+  - trnascan-se
+  - minimap2
+  - tbl2asn-forever
+  - snakemake
+  - biopython
+  - bedtools
+  - phanotate
+  - pyhmmer

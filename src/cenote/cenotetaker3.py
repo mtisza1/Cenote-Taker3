@@ -49,13 +49,12 @@ def cenotetaker3():
     Def_CPUs = os.cpu_count()
 
     #def runner():
-    parser = argparse.ArgumentParser(description='Cenote-Taker 2 is a pipeline for virus discovery \
+    parser = argparse.ArgumentParser(description='Cenote-Taker 3 is a pipeline for virus discovery \
                                     and thorough annotation of viral contigs and genomes. Visit \
-                                    https://github.com/mtisza1/Cenote-Taker2#use-case-suggestionssettings for \
-                                    suggestions about how to run different data types and \
-                                    https://github.com/mtisza1/Cenote-Taker2/wiki to read more. Version ' + str(__version__))
+                                    https://github.com/mtisza1/Cenote-Taker3 for help. \
+                                    Version ' + str(__version__))
 
-    required_args = parser.add_argument_group(' REQUIRED ARGUMENTS for Cenote-Taker2 ')
+    required_args = parser.add_argument_group(' REQUIRED ARGUMENTS for Cenote-Taker 3 ')
 
     required_args.add_argument("-c", "--contigs", dest="original_contigs", type=str, required=True, 
                             help='Contig file with .fasta extension in fasta format. Each header must be unique \
@@ -70,18 +69,18 @@ def cenotetaker3():
                                 non-circular contigs with viral hallmarks (True is highly recommended for sequenced material \
                                 not enriched for viruses. Virus-enriched samples probably should be False (you might check \
                                 enrichment with ViromeQC). Also, please use False if --lin_minimum_hallmark_genes is set to 0)')
-    #required_args.add_argument("-m", "--mem", dest="MEM", type=int, required=True, help='example: 56 -- Gigabytes of memory available for Cenote-Taker2. Typically, 16 to 32 should be used. Aim for at least 1/2 the value of \'-\' ')
+    #required_args.add_argument("-m", "--mem", dest="MEM", type=int, required=True, help='example: 56 -- Gigabytes of memory available for Cenote-Taker3. Typically, 16 to 32 should be used. Aim for at least 1/2 the value of \'-\' ')
 
 
 
 
 
-    optional_args = parser.add_argument_group(' OPTIONAL ARGUMENTS for Cenote-Taker2. See \
+    optional_args = parser.add_argument_group(' OPTIONAL ARGUMENTS for Cenote-Taker 3. See \
                                             https://www.ncbi.nlm.nih.gov/Sequin/sequin.hlp.html#ModifiersPage for more \
                                             information on GenBank metadata fields')
 
     optional_args.add_argument("-t", "--cpu", dest="CPU", type=int, default=Def_CPUs, 
-                            help=f"Default: {Def_CPUs} -- Example: 32 -- Number of CPUs available for Cenote-Taker 2. ")
+                            help=f"Default: {Def_CPUs} -- Example: 32 -- Number of CPUs available for Cenote-Taker 3. ")
     optional_args.add_argument('--version', action='version', version=str(__version__))
     optional_args.add_argument("-am", "--annotation_mode", dest="ANNOTATION_MODE", type=str2bool, default="False", 
                             help='Default: False -- Annotate sequences only (skip discovery). Only use if you believe \
@@ -113,7 +112,7 @@ def cenotetaker3():
                                 method such as VirSorter or DeepVirFinder), or you are very confident you have \
                                 physically enriched for virus particles very well (you might check with ViromeQC). Otherwise, \
                                 the duration of the run will be extended many many times over, largely annotating \
-                                non-viral contigs, which is not what Cenote-Taker2 is meant for. For unenriched samples,\
+                                non-viral contigs, which is not what Cenote-Taker 3 is meant for. For unenriched samples,\
                                 \'2\' might be more suitable, yielding a false positive rate near 0. ')
     optional_args.add_argument("--circ_minimum_hallmark_genes", dest="CIRC_MINIMUM_DOMAINS", type=int, default='1', 
                             help='Default:1 -- Number of detected viral hallmark genes on a circular contig to be \
@@ -137,14 +136,14 @@ def cenotetaker3():
 
     optional_args.add_argument("--caller", dest="CALLER", type=str, choices=['default', 'prodigal', 'phanotate'],
                             default='default', 
-                            help=' ORF caller for identified viruses. default: Cenote-Taker\
+                            help=' ORF caller for identified viruses. default: Cenote-Taker 3\
                                 will choose based on preliminary taxonomy call (phages = phanotate, others = prodigal)\
                                 prodigal: prodigal (meta mode) for all virus sequences. phanotate: phanotate for \
                                 all virus sequences. Note: phanotate takes longer than prodigal, exponentially so \
                                 for LONG input contigs')
 
     ## should be host prediction, instead
-    #optional_args.add_argument("--crispr_file", dest="CRISPR_FILE", type=str, default='none', help='Tab-separated file with CRISPR hits in the following format: CONTIG_NAME HOST_NAME NUMBER_OF_MATCHES. You could use this tool: https://github.com/edzuf/CrisprOpenDB. Then reformat for Cenote-Taker 2')
+    #optional_args.add_argument("--crispr_file", dest="CRISPR_FILE", type=str, default='none', help='Tab-separated file with CRISPR hits in the following format: CONTIG_NAME HOST_NAME NUMBER_OF_MATCHES. You could use this tool: https://github.com/edzuf/CrisprOpenDB. Then reformat for Cenote-Taker 3')
 
     optional_args.add_argument("--isolation_source", dest="isolation_source", type=str, default='unknown', 
                             help='Default: unknown -- Describes the local geographical source of the organism from \
@@ -181,11 +180,11 @@ def cenotetaker3():
                                 toward the minimum hallmark gene parameters. If False, hallmark genes of plasmids will count. \
                                     Plasmid hallmark gene set is not necessarily comprehensive at this time. ')
     ### I need to account for this or remove it:
-    optional_args.add_argument("--scratch_directory", dest="SCRATCH_DIR", type=str, default="none", 
-                            help='Default: none -- When running many instances of Cenote-Taker2, it seems to run more \
-                                quickly if you copy the hhsuite databases to a scratch space temporarily. Use this argument \
-                                to set a scratch directory that the databases will be copied to (at least 100GB of scratch \
-                                space are required for copying the databases)')
+    #optional_args.add_argument("--scratch_directory", dest="SCRATCH_DIR", type=str, default="none", 
+    #                        help='Default: none -- When running many instances of Cenote-Taker 3, it seems to run more \
+    #                            quickly if you copy the hhsuite databases to a scratch space temporarily. Use this argument \
+    #                            to set a scratch directory that the databases will be copied to (at least 100GB of scratch \
+    #                            space are required for copying the databases)')
     optional_args.add_argument("--cenote-dbs", dest="C_DBS", type=str, default="default", 
                             help='DB path. If not set here, Cenote-Taker looks for environmental variable CENOTE_DBS. \
                                 Then, if this variable is unset, DB path is assumed to be ' + str(parentpath))

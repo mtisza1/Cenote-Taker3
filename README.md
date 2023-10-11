@@ -18,9 +18,9 @@ Discover and annotate the virome
 
 ---e) tabular (.tsv) and interactive genome map (.gbf) outputs
 
-**Also, `Cenote-Taker 3` is very fast, many many times faster than `Cenote-Taker 2`, and faster than comparable annotation using `pharokka`**
+**Also, `Cenote-Taker 3` is very fast, many many times faster than `Cenote-Taker 2`, and faster than comparable annotation using `pharokka` (in my hands)**
 
-## Installation Instruction
+## Installation Instructions
 
 *A bioconda package is forthcoming, but this is considered a beta build, so I'm holding off on that*
 
@@ -35,6 +35,7 @@ Discover and annotate the virome
 *Versions used in test installations*
 
 mamba 1.5.1
+
 conda 23.7.4
 
 
@@ -51,6 +52,8 @@ conda 23.7.4
 *You should be able to type `cenotetaker3` in terminal to bring up help menu now*
 
 5)  Change to a directory where you'd like to install databases and run database script, specify DB directory with `-o`.
+
+*Total DB file size of 3.0 GB after file decompression*
 
 `cd ..`
 
@@ -100,3 +103,4 @@ cenotetaker3 -c my_virus_contigs.fna -r my_virs_ct3 -p F -am T
 `Cenote-Taker 3` is under active development, so please open an issue if anything seems unusual or any errors occur. It's likely that I've not tested every parameter combination, and bugs will be a simple fix.
 
 
+### Help Menu

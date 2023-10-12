@@ -58,7 +58,8 @@ if str(args.HMM_DB) == "True":
         os.makedirs(HMM_outdir, exist_ok=True)
     subprocess.call(['wget', '--directory-prefix=' + str(HMM_outdir), 
                      'https://zenodo.org/record/8429309/files/hmmscan_DBs.tgz'])
-    subprocess.call(['tar', '-xvf', os.path.join(HMM_outdir, 'hmmscan_DBs.tgz')])
+    subprocess.call(['tar', '-xvf', os.path.join(HMM_outdir, 'hmmscan_DBs.tgz'),
+                     '-C',  str(HMM_outdir)])
     subprocess.call(['rm', '-f', os.path.join(HMM_outdir, 'hmmscan_DBs.tgz')])
 
 if str(args.MMSEQS_TAX) == "True":

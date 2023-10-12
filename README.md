@@ -57,7 +57,7 @@ conda 23.7.4
 
 `cd ..`
 
-`python Cenote-Taker3/src/cenote/get_ct3_databases.py -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T`
+`python Cenote-Taker3/src/cenote/get_ct3_databases.py -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T --domain_list T`
 
 6)  Set the database directory as a conda environmental variable.
 

@@ -30,7 +30,7 @@ Discover and annotate the virome
 
 2)  Using `mamba` (package manager within `conda`) and the provided yaml file, make the environment:
 
-`mamba env create -f Cenote-Taker3/environmentct3_beta_env.yaml`
+`mamba env create -f Cenote-Taker3/environment/ct3_beta_env.yaml`
 
 *Versions used in test installations*
 
@@ -112,3 +112,5 @@ cenotetaker3 -c my_virus_contigs.fna -r my_virs_ct3 -p F -am T
 * Nucleotide or kmer-based species-level taxonomy
 
 * Incorporate `prodigal-gv` as alternative ORF caller
+
+* Update HMM database to increase consistency of names/functions between similar models

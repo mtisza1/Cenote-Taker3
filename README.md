@@ -114,3 +114,5 @@ cenotetaker3 -c my_virus_contigs.fna -r my_virs_ct3 -p F -am T
 * Incorporate `prodigal-gv` as alternative ORF caller
 
 * Update HMM database to increase consistency of names/functions between similar models
+
+* instructions for manual curation -> GenBank deposit of `Cenote-Taker 3` output

@@ -6,7 +6,7 @@ taxdump/
 **/.DS_Store
 mmseqs_DBs/
 pfam_32_db/
-
+hhsearch_DBs/
 
 # snakemake
 .snakemake*

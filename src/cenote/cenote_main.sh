@@ -105,6 +105,13 @@ if [ -z ${C_DBS}/mmseqs_DBs/CDD ] ; then
 	exit
 fi
 
+if [ -z ${C_DBS}/viral_cdds_and_pfams_191028.txt ] ; then
+	echo "couldn't find CDD virus domain list at ${C_DBS}/viral_cdds_and_pfams_191028.txt"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
+	echo "exiting"
+	exit
+fi
+
 MDYT=$( date +"%m-%d-%y---%T" )
 echo -e "${BBlack}time update: configuring run directory  ${MDYT}${Color_Off}"
 

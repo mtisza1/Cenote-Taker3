@@ -33,7 +33,43 @@ def validate_fasta(filename):
 		if any(fasta):
 			print("FASTA checked.")
 		else:
-			sys.exit("Error: Input file is not in the FASTA format.\n")  
+			sys.exit("Error: Input file is not in the FASTA format.\n")
+
+## important random color ASCII-logo printer
+def art_for_arts_sake():
+    color_list = [
+    '\033[31m', #red
+    '\033[32m', #green
+    '\033[33m', #orange
+    '\033[34m', #blue
+    '\033[35m', #purple
+    '\033[36m', #cyan
+    '\033[37m', #lightgrey
+    '\033[91m', #lightred
+    '\033[92m', #lightgreen
+    '\033[93m', #yellow
+    '\033[94m', #lightblue
+    '\033[95m', #pink
+    '\033[96m' #lightcyan
+    ]
+    ENDC = '\033[0m'
+
+    rand_color = random.sample(color_list, k=3)
+
+
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
+    print(f"{rand_color[0]}0000000000",f"{rand_color[1]}^^^^^^^^",f"{rand_color[0]}0000000000{ENDC}")
+    print(f"{rand_color[0]}0000000",f"{rand_color[1]}^^^^^^^^^^^^^^",f"{rand_color[0]}0000000{ENDC}")
+    print(f"{rand_color[0]}00000",f"{rand_color[1]}^^^^^",f"{rand_color[2]}CENOTE",
+        f"{rand_color[1]}^^^^^",f"{rand_color[0]}00000{ENDC}")
+    print(f"{rand_color[0]}00000",f"{rand_color[1]}^^^^^",f"{rand_color[2]}TAKER!",
+        f"{rand_color[1]}^^^^^",f"{rand_color[0]}00000{ENDC}")
+    print(f"{rand_color[0]}000000",f"{rand_color[1]}^^^^^^^^^^^^^^^^",f"{rand_color[0]}000000{ENDC}")
+    print(f"{rand_color[0]}0000000",f"{rand_color[1]}^^^^^^^^^^^^^^",f"{rand_color[0]}0000000{ENDC}")
+    print(f"{rand_color[0]}0000000000",f"{rand_color[1]}^^^^^^^^",f"{rand_color[0]}0000000000{ENDC}")
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
 
 ### entry point function for cenote-taker
 def cenotetaker3():   
@@ -231,6 +267,7 @@ def cenotetaker3():
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
     #########################
+    art_for_arts_sake()
 
 
     validate_fasta(args.original_contigs)

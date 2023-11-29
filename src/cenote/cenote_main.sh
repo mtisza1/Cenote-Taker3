@@ -1063,14 +1063,15 @@ fi
 #----	fields
 #----	(contig	chunk_name	taxon	taxonomy_hierarchy	taxon_level	avg_hallmark_AAI_to_ref)
 
+if [ ! -d ${TEMP_DIR}/final_taxonomy ]; then
+	mkdir ${TEMP_DIR}/final_taxonomy
+fi
+
 if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: reassessing taxonomy on final virus seqs ${MDYT}${Color_Off}"
 
-	if [ ! -d ${TEMP_DIR}/final_taxonomy ]; then
-		mkdir ${TEMP_DIR}/final_taxonomy
-	fi
 
 	seqkit grep --quiet -f ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt\
 	  ${TEMP_DIR}/reORF/reORFcalled_all.faa > ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa
@@ -1090,20 +1091,20 @@ if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 	else
 		echo "couldn't find ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa"
 	fi
+else
+	touch ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv
+fi
 
-	if [ -e ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv ] ; then
+if [ -e ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv ] ; then
 
-		##python script to merge these results with gene annotation table, find best hit, decide taxon
-		python ${CENOTE_SCRIPTS}/python_modules/vote_taxonomy.py ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv\
-		  ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ${TEMP_DIR}/final_taxonomy
-	
-	else
-		echo "couldn't find mmseqs hallmark tax table for final taxonomy assessment"
-	fi
+	##python script to merge these results with gene annotation table, find best hit, decide taxon
+	python ${CENOTE_SCRIPTS}/python_modules/vote_taxonomy.py ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv\
+	  ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ${TEMP_DIR}/final_taxonomy
 
 else
-	echo "can't find the reORF hallmark hits for taxonomy"
+	echo "couldn't find mmseqs hallmark tax table for final taxonomy assessment"
 fi
+
 
 #-#- blastn-style mmseqs2 taxonomy for species level
 

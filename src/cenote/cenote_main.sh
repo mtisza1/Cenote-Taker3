@@ -20,19 +20,31 @@ C_DBS=${15}
 WRAP=${16}
 PHROGS=${17}
 CALLER=${18}
-ISO_SOURCE=${19}
-COLLECT_DATE=${20}
-META_TYPE=${21}
-SRR=${22}
-SRX=${23}
-BIOSAMP=${24}
-PRJ=${25}
-ASSEMBLER=${26}
-MOL_TYPE=${27}
-DATA_SOURCE=${28}
+HHSUITE_TOOL=${19} ##
+ISO_SOURCE=${20}
+COLLECT_DATE=${21}
+META_TYPE=${22}
+SRR=${23}
+SRX=${24}
+BIOSAMP=${25}
+PRJ=${26}
+ASSEMBLER=${27}
+MOL_TYPE=${28}
+DATA_SOURCE=${29}
 
-PFAM_HHSUITE="${C_DBS}/pfam_32_db/pfam"
-HHSUITE_DB_STR="-d ${PFAM_HHSUITE} "
+
+PFAM_HHSUITE="${C_DBS}/hhsearch_DBs/pfam_32_db/pfam"
+
+if [ -s ${PFAM_HHSUITE}_a3m.ffdata ] ; then
+	HHSUITE_DB_STR="-d ${PFAM_HHSUITE} "
+fi
+
+if [ -z ${HHSUITE_DB_STR} ] ; then
+	echo "hhsuite databases not found"
+	echo "expecting: ${PFAM_HHSUITE}_a3m.ffdata"
+	echo "hhsuite tools will not be run"
+	HHSUITE_TOOL="none"
+fi
 
 
 ### echo colors
@@ -180,36 +192,26 @@ fi
 #-- ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 #- output:
 #-- ${TEMP_DIR}/contig_name_map.tsv
-#-- ${TEMP_DIR}/split_orig_contigs/*fasta (1 or more)
-#-- ${TEMP_DIR}/split_orig_contigs/*prod.faa (1 or more)
+#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
 
 if [ -s ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta ] ; then
-	if [ ! -d "${TEMP_DIR}/split_orig_contigs" ]; then
-		mkdir ${TEMP_DIR}/split_orig_contigs
+	if [ ! -d "${TEMP_DIR}/ORF_orig_contigs" ]; then
+		mkdir ${TEMP_DIR}/ORF_orig_contigs
 	fi
 
-	# table table with ct name and input name in separate columns
+	# table with ct name and input name in separate columns
 	TABQ=$'\t'
 	grep -F ">" ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta |\
 	  sed "s/ /\t/" | sed 's/>//g' > ${TEMP_DIR}/contig_name_map.tsv
 
-	## split contigs for prodigal ORF call
+	MDYT=$( date +"%m-%d-%y---%T" )
+	echo -e "${BRed}time update: running pyrodigal on all contigs  ${MDYT}${Color_Off}"
 
-	seqkit split --quiet -j $CPU -p $CPU -O ${TEMP_DIR}/split_orig_contigs ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+	python ${CENOTE_SCRIPTS}/python_modules/pyrodigal_gv_runner.py ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta\
+	  ${TEMP_DIR}/ORF_orig_contigs $CPU $CALLER
 
-	SPLIT_ORIG_CONTIGS=$( find ${TEMP_DIR}/split_orig_contigs -type f -name "*.fasta" )
+	seqkit split --quiet -j $CPU -p $CPU -O ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/ORF_orig_contigs/pyrodigal_gv_AAs.prod.faa
 
-	if [ -n "$SPLIT_ORIG_CONTIGS" ] ; then
-		MDYT=$( date +"%m-%d-%y---%T" )
-		echo -e "${BRed}time update: running prodigal on all contigs  ${MDYT}${Color_Off}"
-
-		echo "$SPLIT_ORIG_CONTIGS" | sed 's/.fasta//g' |\
-		  xargs -n 1 -I {} -P $CPU -t prodigal -a {}.prod.faa -i {}.fasta -p meta -q >/dev/null 2>&1
-
-	else
-		echo "can't find split original contigs"
-
-	fi
 else
 	echo "couldn't find ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta"
 	echo "exiting"
@@ -225,7 +227,7 @@ fi
 
 ### run pyhmmer on prodigal ORF files, virion DB and rep DB
 #- input: -#
-#-- ${TEMP_DIR}/split_orig_contigs/*prod.faa (1 or more)
+#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
 #- output: -#
 #-- ${TEMP_DIR}/orig_pyhmmer_virion/contig_hit_count.tsv
 #---- 	fields
@@ -243,24 +245,24 @@ fi
 #-- ${TEMP_DIR}/hallmarks_per_orig_contigs.tsv
 #-- ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt
 
-SPLIT_ORIG_AAs=$( find ${TEMP_DIR}/split_orig_contigs -type f -name "*.prod.faa" )
+SPLIT_ORIG_AAs=$( find ${TEMP_DIR}/ORF_orig_contigs/split -type f -name "*.faa" )
 
 if [ -n "$SPLIT_ORIG_AAs" ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BRed}time update: running pyhmmer on all ORFs  ${MDYT}${Color_Off}"
 
-	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_virion\
+	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_virion\
 	  ${C_DBS}/hmmscan_DBs/v3.0/Virion_HMMs.h3m $CPU 1e-7
 
-	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/split_orig_contigs ${TEMP_DIR}/orig_pyhmmer_rep\
+	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_rep\
 	  ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m $CPU 1e-7
 
 	python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
 	  ${TEMP_DIR}/orig_pyhmmer_rep ${HALLMARK_MINIMUM} ${HALL_TYPE} ${TEMP_DIR} ${TEMP_DIR}/contig_name_map.tsv
 
 else
-	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/split_orig_contigs"
+	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/ORF_orig_contigs/split"
 fi
 
 
@@ -411,7 +413,7 @@ fi
 
 ### evaluate ORF caller argument
 
-if [ $CALLER == "prodigal" ] || [ $CALLER == "phanotate" ] ; then
+if [ $CALLER == "prodigal" ] || [ $CALLER == "prodigal-gv" ] || [ $CALLER == "phanotate" ] ; then
 	#- input: -#
 	#-- ${TEMP_DIR}/contigs_to_keep.txt
 	#- output: -#
@@ -419,7 +421,7 @@ if [ $CALLER == "prodigal" ] || [ $CALLER == "phanotate" ] ; then
 	#-- ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 	echo "forcing final ORF calls to be $CALLER"
 
-	if [ $CALLER == "prodigal" ] ; then
+	if [ $CALLER == "prodigal" ] || [ $CALLER == "prodigal-gv" ] ; then
 
 		cp ${TEMP_DIR}/contigs_to_keep.txt ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
 
@@ -434,7 +436,7 @@ else
 	### blastp-style mmseqs hallmark genes for taxonomy
 	#- input: -#
 	#-- ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt
-	#-- ${TEMP_DIR}/split_orig_contigs/*prod.faa (1 or more)
+	#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
 	#- output: -#
 	#-- ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa
 	#-- ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv
@@ -527,45 +529,34 @@ fi
 #-- ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
 #-- ${TEMP_DIR}/oriented_hallmark_contigs.fasta
 #- output: -#
-#-- ${TEMP_DIR}/reORF/prod_split/*prod.faa (1 or more)
-#-- ${TEMP_DIR}/reORF/prod_split/*prod.gff (1 or more)
+#-- ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.faa
+#-- ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.gff
 #-- ${TEMP_DIR}/reORF/reORFcalled_all.faa (append)
-#-- ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
+#-- ${TEMP_DIR}/reORF/contig_gcodes1.txt
 
 if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] && [ -s ${TEMP_DIR}/oriented_hallmark_contigs.fasta ]; then
 
-	if [ ! -d ${TEMP_DIR}/reORF/prod_split ]; then
-		mkdir ${TEMP_DIR}/reORF/prod_split
-	fi
 
-	seqkit grep --quiet -f ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ${TEMP_DIR}/oriented_hallmark_contigs.fasta |\
-	  seqkit split --quiet -j $CPU -p $CPU -O ${TEMP_DIR}/reORF/prod_split
+	seqkit grep --quiet -f ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt\
+	  ${TEMP_DIR}/oriented_hallmark_contigs.fasta > ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.fna
 
-	SPLIT_PROD_CONTIGS=$( find ${TEMP_DIR}/reORF/prod_split -type f -name "*.fasta" )
+	python ${CENOTE_SCRIPTS}/python_modules/pyrodigal_gv_runner.py ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.fna\
+	  ${TEMP_DIR}/reORF $CPU $CALLER
 
-	if [ -n "$SPLIT_PROD_CONTIGS" ] ; then
-		PROD_SEQS_L=$( cat ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt | wc -l )
-		MDYT=$( date +"%m-%d-%y---%T" )
-		echo -e "${BBlue}time update: running prodigal for re-ORF call on ${PROD_SEQS_L} seqs  ${MDYT}${Color_Off}"
-
-		echo "$SPLIT_PROD_CONTIGS" | sed 's/.fasta//g' |\
-		  xargs -n 1 -I {} -P $CPU -t prodigal -a {}.prod.faa -f gff -o {}.prod.gff -i {}.fasta -p meta -q >/dev/null 2>&1
-
-		echo "$SPLIT_PROD_CONTIGS" | sed 's/.fasta//g' | while read PROD ; do
-			cat ${PROD}.prod.faa
-		done >> ${TEMP_DIR}/reORF/reORFcalled_all.faa
+	if [ -s ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.faa ] ; then
+		cat ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.faa >> ${TEMP_DIR}/reORF/reORFcalled_all.faa
 
 		## extract genetic code from prodigal files.
 		cat ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt | while read SEQ ; do 
-			GCODE=$( grep -A1 "\"${SEQ}\"" ${TEMP_DIR}/reORF/prod_split/*gff | tail -n1 |\
+			GCODE=$( grep -A1 "\"${SEQ}\"" ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.gff | tail -n1 |\
 			  sed 's/.*transl_table=\([0-9]\{1,2\}\).*/\1/' )
 			echo -e "${SEQ}\t${GCODE}"
-		done > ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
+		done > ${TEMP_DIR}/reORF/contig_gcodes1.txt
 
 	else
-		echo "can't find split prodigal contigs"
-
+		echo "can't find ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.faa"
 	fi
+
 
 else
 	echo "no prodigal list. OK."
@@ -724,7 +715,7 @@ if [ -n "$SPLIT_REORF_AAs" ] ; then
 
 
 else
-	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/split_orig_contigs"
+	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/reORF_pyhmmer1_split"
 fi
 
 ## pyhmmer2 (other virus HMMs)
@@ -762,7 +753,7 @@ if [ -n "$SECOND_REORF_AAs" ] ; then
 
 
 else
-	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/split_orig_contigs"
+	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/reORF_pyhmmer2_split"
 fi
 
 
@@ -805,7 +796,7 @@ fi
 #- input: -#
 #-- ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
 #-- ${TEMP_DIR}/reORF/phan_split/*bed (1 or more)
-#-- ${TEMP_DIR}/reORF/prod_split/*prod.gff (1 or more)
+#-- ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.gff
 #-- ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv
 #-- ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv
 #-- ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv
@@ -827,7 +818,7 @@ if [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] && [ -s ${C_D
 	echo -e "${BCyan}time update: assessing each gene on all contigs and scoring contigs for virusness  ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/assess_virus_genes1.py ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv\
-	  ${TEMP_DIR}/reORF/phan_split ${TEMP_DIR}/reORF/prod_split ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+	  ${TEMP_DIR}/reORF/phan_split ${TEMP_DIR}/reORF ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${TEMP_DIR}/reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv ${C_DBS}/viral_cdds_and_pfams_191028.txt \
 	  ${TEMP_DIR}/assess_prune ${HALL_TYPE} ${PROPHAGE}
@@ -941,15 +932,17 @@ if [ "${PHROGS}" == "True" ]  && [ -s ${TEMP_DIR}/hypothetical_proteins.after_ch
 		if [ -s ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
 			tail -n+2 ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/phrogs_pyhmmer/hit_this_round1.txt
 
-			#echo "$PHROGS_AAs" | while read AA ; do
-			#	seqkit grep -j $CPU -v -f ${TEMP_DIR}/phrogs_pyhmmer/hit_this_round1.txt $AA >> ${TEMP_DIR}/reORF_mmseqs_combined/all_AA_seqs.no2.faa
-			#done
+			echo "$PHROGS_AAs" | while read AA ; do
+				seqkit grep -j $CPU -v -f ${TEMP_DIR}/phrogs_pyhmmer/hit_this_round1.txt $AA >> ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa
+			done
 
 		else
-			echo ""
-			#echo "$SECOND_REORF_AAs" | while read AA ; do
-			#	cat $AA
-			#done > ${TEMP_DIR}/reORF_mmseqs_combined/all_AA_seqs.no2.faa
+			if [ ! -d ${TEMP_DIR}/phrogs_pyhmmer ] ; then
+				mkdir ${TEMP_DIR}/phrogs_pyhmmer
+			fi
+
+			cp ${TEMP_DIR}/reORF/reORFcalled_all.faa ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa
+
 		fi
 
 	else
@@ -966,7 +959,8 @@ fi
 #-# to annotation table add columns
 #-# hhsearch accession, hhsearch description
 if  [[ $HHSUITE_TOOL = "hhsearch" ]] || [[ $HHSUITE_TOOL = "hhblits" ]] ; then
-	if [ -s ${TEMP_DIR}/hypothetical_proteins.for_hhpred.txt ] ; then
+	if [ -s ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa ] ; then
+
 		MDYT=$( date +"%m-%d-%y---%T" )
 		echo -e "${BRed}time update: hhsuite search of hypothetical proteins ${MDYT}${Color_Off}"
 
@@ -978,16 +972,14 @@ if  [[ $HHSUITE_TOOL = "hhsearch" ]] || [[ $HHSUITE_TOOL = "hhblits" ]] ; then
 			mkdir ${TEMP_DIR}/hhpred/AA_files
 		fi
 
-		seqkit grep --quiet -f ${TEMP_DIR}/hypothetical_proteins.for_hhpred.txt reORFcalled_all.faa |\
-		  seqkit split --quiet -j $CPU -s 1 -O ${TEMP_DIR}/hhpred/AA_files
+		seqkit split --quiet -j $CPU -s 1 -O ${TEMP_DIR}/hhpred/AA_files ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa
 
-		HH_AAs=$( find ${TEMP_DIR}/hhpred/AA_files -type f -name "*.fasta" )
+		HH_AAs=$( find ${TEMP_DIR}/hhpred/AA_files -type f -name "*.faa" )
 
 		if [ -n "$HH_AAs" ] ; then
-			echo "$HH_AAs" | sed 's/.fasta//g' |\
-			  xargs -n 1 -I {} -P $CPU hhblits -i {}.fasta "${HHSUITE_DB_STR}" -o {}.out.hhr\
+			echo "$HH_AAs" | sed 's/.faa//g' |\
+			  xargs -n 1 -I {} -P $CPU hhblits -i {}.faa ${HHSUITE_DB_STR} -o {}.out.hhr\
 			  -cpu 1 -maxmem 1 -p 80 -Z 20 -z 0 -b 0 -B 10 -ssm 2 -sc 1 >/dev/null 2>&1
-
 
 		else
 			echo "AA seqs for hhpred not found"
@@ -1114,7 +1106,7 @@ fi
 #--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
 #--  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
 #--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
-#--  ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
+#--  ${TEMP_DIR}/reORF/contig_gcodes1.txt
 #- output: -#
 #--  ${run_title}/sequin_and_genome_maps/*.fsa
 
@@ -1128,7 +1120,7 @@ if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_fsas.py ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta\
 	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv\
 	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps\
-	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt $ISO_SOURCE\
+	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ${TEMP_DIR}/reORF/contig_gcodes1.txt $ISO_SOURCE\
 	  $COLLECT_DATE $META_TYPE $SRR $SRX $BIOSAMP $PRJ $MOL_TYPE $DATA_SOURCE
 
 else
@@ -1240,7 +1232,7 @@ fi
 #--  ${TEMP_DIR}/contig_name_map.tsv
 #--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
 #--  ${run_title}/sequin_and_genome_maps/*.fsa
-#--  ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt
+#--  ${TEMP_DIR}/reORF/contig_gcodes1.txt
 #--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 #- output: -#
 #--  ${run_title}/${run_title}_virus_summary.tsv
@@ -1257,7 +1249,7 @@ if [ -s ${run_title}/final_genes_to_contigs_annotation_summary.tsv ] ; then
 
 	python ${CENOTE_SCRIPTS}/python_modules/virus_summary.py ${TEMP_DIR}/contig_name_map.tsv \
 	  ${run_title}/final_genes_to_contigs_annotation_summary.tsv ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv \
-	  ${run_title}/sequin_and_genome_maps ${run_title} ${TEMP_DIR}/reORF/prod_split/contig_gcodes1.txt\
+	  ${run_title}/sequin_and_genome_maps ${run_title} ${TEMP_DIR}/reORF/contig_gcodes1.txt\
 	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 
 else

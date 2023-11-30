@@ -162,21 +162,24 @@ def cenotetaker3():
                                 start codon? GenBank submissions containing ORFs without start codons can be rejected. \
                                 However, if True,  important but incomplete genes could be culled from the final output. \
                                 This is relevant mainly to contigs of incomplete genomes ')
-    optional_args.add_argument("-hh", "--hhsuite_tool", dest="HHSUITE_TOOL", type=str, default='hhblits', 
-                            help=' default: hhblits -- hhblits will query PDB, pfam, and CDD to annotate ORFs escaping \
-                                identification via upstream methods. \'hhsearch\': hhsearch, a more sensitive tool, will \
-                                query PDB, pfam, and CDD to annotate ORFs escaping identification via upstream methods. \
+    optional_args.add_argument("-hh", "--hhsuite_tool", dest="HHSUITE_TOOL", type=str, 
+                               choices=['none', 'hhblits', 'hhsearch'], default='none', 
+                            help=' default: none -- hhblits: query any of PDB, pfam, and CDD (depending on what is installed)\
+                                to annotate ORFs escaping identification via upstream methods.\
+                                hhsearch: a more sensitive tool, will \
+                                query PDB, pfam, and CDD (depending on what is installed) to annotate ORFs. \
                                 (WARNING: hhsearch takes much, much longer than hhblits and can extend the duration of the \
-                                run many times over. Do not use on large input contig files). \'no_hhsuite_tool\': forgoes \
+                                run many times over. Do not use on large input contig files). \'none\': forgoes \
                                 annotation of ORFs with hhsuite. Fastest way to complete a run. ')
 
-    optional_args.add_argument("--caller", dest="CALLER", type=str, choices=['default', 'prodigal', 'phanotate'],
-                            default='default', 
-                            help=' ORF caller for identified viruses. default: Cenote-Taker 3\
-                                will choose based on preliminary taxonomy call (phages = phanotate, others = prodigal)\
-                                prodigal: prodigal (meta mode) for all virus sequences. phanotate: phanotate for \
-                                all virus sequences. Note: phanotate takes longer than prodigal, exponentially so \
-                                for LONG input contigs')
+    optional_args.add_argument("--caller", dest="CALLER", type=str, choices=['prodigal-gv', 'prodigal', 'phanotate', 'adaptive'],
+                            default='prodigal-gv', 
+                            help=' ORF caller for viruses. default: prodigal-gv\
+                                prodigal-gv: prodigal-gv only (prodigal with extra models for unusual viruses) (meta mode)\
+                                prodigal: prodigal classic only (meta mode). phanotate: phanotate only \
+                                Note: phanotate takes longer than prodigal, exponentially so for LONG input contigs.\
+                                adaptive: will choose based on preliminary taxonomy call \
+                                (phages = phanotate, others = prodigal-gv)')
 
     ## should be host prediction, instead
     #optional_args.add_argument("--crispr_file", dest="CRISPR_FILE", type=str, default='none', help='Tab-separated file with CRISPR hits in the following format: CONTIG_NAME HOST_NAME NUMBER_OF_MATCHES. You could use this tool: https://github.com/edzuf/CrisprOpenDB. Then reformat for Cenote-Taker 3')
@@ -422,7 +425,7 @@ def cenotetaker3():
                         str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
                         str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
                         str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
-                        str(args.CALLER), str(args.isolation_source),
+                        str(args.CALLER), str(args.HHSUITE_TOOL), str(args.isolation_source),
                         str(args.collection_date), str(args.metagenome_type), str(args.srr_number), 
                         str(args.srx_number), str(args.biosample), str(args.bioproject),
                         str(args.ASSEMBLER), str(args.MOLECULE_TYPE), str(args.DATA_SOURCE)],

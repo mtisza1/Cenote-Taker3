@@ -17,16 +17,21 @@ rep_count_file = os.path.join(rep_count_dir, "contig_hit_count.tsv")
 
 rep_tsv_file = os.path.join(rep_count_dir, "pyhmmer_report_AAs.tsv")
 
+rdrp_count_dir = sys.argv[3]
 
-hallmark_count = sys.argv[3]
+rdrp_count_file = os.path.join(rdrp_count_dir, "contig_hit_count.tsv")
+
+rdrp_tsv_file = os.path.join(rdrp_count_dir, "pyhmmer_report_AAs.tsv")
+
+hallmark_count = sys.argv[4]
 
 hallmark_count = int(hallmark_count)
 
-hallmark_type = sys.argv[4]
+hallmark_type = sys.argv[5]
 
-out_dir = sys.argv[5]
+out_dir = sys.argv[6]
 
-names_file = sys.argv[6]
+names_file = sys.argv[7]
 
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
@@ -44,21 +49,40 @@ except:
     print("no rep hmm tsv")
     rep_dt  = pd.DataFrame(columns = ['contig', 'rep_hit_count'])
 
+try:
+    rdrp_dt = pd.read_csv(rdrp_count_file, sep = "\t", names=['contig', 'rdrp_hit_count'], skiprows = 1)
+except:
+    print("no rdrp hmm tsv")
+    rdrp_dt  = pd.DataFrame(columns = ['contig', 'rdrp_hit_count'])
+
+
+hits_dt = pd.merge(virion_dt, rep_dt, on = 'contig', how = 'outer')
+
+hits_dt = pd.merge(hits_dt, rdrp_dt, on = 'contig', how = 'outer')
+
 names_dt = pd.read_csv(names_file, sep = "\t", names=['contig', 'original_name'])[['contig']]
 
-merge_dt = pd.merge(virion_dt, rep_dt, on = 'contig', how = 'outer')
-
-merge_dt = pd.merge(merge_dt, names_dt, on = 'contig', how = 'outer')
+merge_dt = pd.merge(hits_dt, names_dt, on = 'contig', how = 'outer')
 
 merge_dt = merge_dt.fillna(0)
 
-merge_dt['total_hit_count'] = merge_dt['virion_hit_count'] + merge_dt['rep_hit_count']
+
 
 ## depending on settings, call contigs with minimum hallmark genes
-if hallmark_type == 'virion':
-    contigs_w_min_hall = merge_dt.query("virion_hit_count >= @hallmark_count")['contig']
-else:
-    contigs_w_min_hall = merge_dt.query("total_hit_count >= @hallmark_count")['contig']
+if "virion" in hallmark_type and "rdrp" in hallmark_type and "dnarep" in hallmark_type:
+    merge_dt['total_hit_count'] = merge_dt['virion_hit_count'] + merge_dt['rep_hit_count'] + merge_dt['rdrp_hit_count']
+elif "virion" in hallmark_type and "rdrp" in hallmark_type:
+    merge_dt['total_hit_count'] = merge_dt['virion_hit_count'] + merge_dt['rdrp_hit_count']
+elif "virion" in hallmark_type and "dnarep" in hallmark_type:
+    merge_dt['total_hit_count'] = merge_dt['virion_hit_count'] + merge_dt['rep_hit_count']
+elif "virion" in hallmark_type:
+    merge_dt['total_hit_count'] = merge_dt['virion_hit_count']
+elif "rdrp" in hallmark_type:
+    merge_dt['total_hit_count'] = merge_dt['rdrp_hit_count']
+elif "dnarep" in hallmark_type:
+    merge_dt['total_hit_count'] = merge_dt['rep_hit_count']
+
+contigs_w_min_hall = merge_dt.query("total_hit_count >= @hallmark_count")['contig']
 
 if not contigs_w_min_hall.empty:
 
@@ -87,8 +111,13 @@ try:
 except:
     rep_hits_dt = pd.DataFrame()
 
+try:
+    rdrp_hits_dt = pd.read_csv(rdrp_tsv_file, sep = "\t")
+except:
+    rdrp_hits_dt = pd.DataFrame()
+
 df_list = []
-for hit_t in [virion_hits_dt, rep_hits_dt]:
+for hit_t in [virion_hits_dt, rep_hits_dt, rdrp_hits_dt]:
     if not hit_t.empty:
         df_list.append(hit_t)
 
@@ -97,7 +126,7 @@ try:
 except:
     print("couldn't make full hits list")
 
-hm_contigs_hits_dt = merge_dt = pd.merge(contigs_w_min_hall, full_hits_dt, on = 'contig', how = 'left')
+hm_contigs_hits_dt = pd.merge(contigs_w_min_hall, full_hits_dt, on = 'contig', how = 'left')
 
 hm_contigs_hits_l = hm_contigs_hits_dt['ORFquery']
 

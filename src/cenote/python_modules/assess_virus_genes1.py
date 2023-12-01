@@ -33,15 +33,17 @@ comm_pyhmmer_table = sys.argv[5]
 
 rep_pyhmmer_table = sys.argv[6]
 
-mmseqs_CDD_table = sys.argv[7]
+rdrp_pyhmmer_table = sys.argv[7]
 
-viral_cdds_list = sys.argv[8]
+mmseqs_CDD_table = sys.argv[8]
 
-out_dir = sys.argv[9]
+viral_cdds_list = sys.argv[9]
 
-hall_type = sys.argv[10]
+out_dir = sys.argv[10]
 
-PROPHAGE = sys.argv[11]
+hall_type = sys.argv[11]
+
+PROPHAGE = sys.argv[12]
 
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
@@ -128,7 +130,42 @@ except:
     print("nope")
     exit
 
-## load and parse table for first pyhmmer search (hallmarks)
+## load and parse table for first pyhmmer search (hallmarks)\
+
+def parse_pyhmmer_table(tab_file, evidence, categ):
+    try:
+        ppyh_df = pd.read_csv(tab_file, sep = "\t")[['ORFquery', 'target']]
+
+
+        ppyh_df["gene_name"] = ppyh_df["ORFquery"]
+
+        ppyh_df["slash_pos"] = ppyh_df["target"].str.find("/")
+        ppyh_df["fdash_pos"] = ppyh_df["target"].str.find("-")
+
+
+        ppyh_df["evidence_acession"] = ppyh_df.apply(
+            lambda x: x["target"][x["slash_pos"]+1:x["fdash_pos"]], axis = 1)
+
+        ppyh_df["evidence_description"] = ppyh_df.apply(lambda x: x["target"][x["fdash_pos"]+1:], 
+                                                                    axis = 1)
+
+        ppyh_df = ppyh_df[['gene_name', 'evidence_acession', 'evidence_description']]
+
+        ppyh_df['Evidence_source'] = str(evidence)
+
+        ppyh_df['vscore_category'] = str(categ)
+
+    except:
+        print("nope")
+        ppyh_df = pd.DataFrame()
+    return ppyh_df
+
+virion_ppyh_df = parse_pyhmmer_table(virion_pyhmmer_table, "hallmark_hmm", "common_virus")
+comm_pyh_df = parse_pyhmmer_table(comm_pyhmmer_table, "common_virus_hmm", "common_virus")
+rep_pyh_df = parse_pyhmmer_table(rep_pyhmmer_table, "rep_hall_hmm", "common_virus")
+rdrp_pyh_df = parse_pyhmmer_table(rdrp_pyhmmer_table, "rdrp_hall_hmm", "common_virus")
+
+"""
 try:
     virion_ppyh_df = pd.read_csv(virion_pyhmmer_table, sep = "\t")[['ORFquery', 'target']]
 
@@ -207,7 +244,7 @@ except:
     print("nope")
     rep_pyh_df = pd.DataFrame()
 
-
+"""
 ## load and parse table for mmseqs CDD search
 try:
     cdd_df = pd.read_csv(mmseqs_CDD_table, sep = "\t")[['query', 'target', 'description']]
@@ -257,6 +294,9 @@ if not comm_pyh_df.empty:
 
 if not rep_pyh_df.empty:
     gene_ann_list.append(rep_pyh_df)
+
+if not rdrp_pyh_df.empty:
+    gene_ann_list.append(rdrp_pyh_df)
 
 if not comb_cdd_df.empty:
     gene_ann_list.append(comb_cdd_df)

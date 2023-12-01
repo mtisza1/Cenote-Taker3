@@ -133,7 +133,8 @@ def cenotetaker3():
     optional_args.add_argument("--minimum_length_linear", dest="linear_length_cutoff", type=int, default='1000', 
                             help='Default: 1000 -- Minimum length of non-circualr contigs to be checked for viral \
                                 hallmark genes.')
-    optional_args.add_argument("-db", "--virus_domain_db", dest="virus_domain_db", type=str, default='virion', 
+    optional_args.add_argument("-db", "--virus_domain_db", dest="HALL_LIST", type=str, choices=['virion', 'rdrp', 'dnarep'],
+                                default=['virion', 'rdrp'], nargs="+",
                             help='default: virion -- \'standard\' database: all virus (DNA and RNA) hallmark genes \
                                 (i.e. genes with known function as virion structural, packaging, replication, or maturation \
                                 proteins specifically encoded by virus genomes) with low false discovery rate. \'virion\' \
@@ -215,9 +216,7 @@ def cenotetaker3():
 
     ### I need to account for this or remove it:
     optional_args.add_argument("--filter_out_plasmids", dest="FILTER_PLASMIDS", type=str2bool, default=True, 
-                            help='Default: True -- True - OR - False. If True, hallmark genes of plasmids will not count \
-                                toward the minimum hallmark gene parameters. If False, hallmark genes of plasmids will count. \
-                                    Plasmid hallmark gene set is not necessarily comprehensive at this time. ')
+                            help=argparse.SUPPRESS)
     ### I need to account for this or remove it:
     #optional_args.add_argument("--scratch_directory", dest="SCRATCH_DIR", type=str, default="none", 
     #                        help='Default: none -- When running many instances of Cenote-Taker 3, it seems to run more \
@@ -248,6 +247,8 @@ def cenotetaker3():
         args.circ_length_cutoff = 1
         args.linear_length_cutoff = 1
         args.PROPHAGE = "False"
+
+    HALL_TYPE = ' '.join(map(str,args.HALL_LIST))
 
     ## make out directory (rename any existing directory)
     if not os.path.isdir(str(args.run_title)):
@@ -424,8 +425,9 @@ def cenotetaker3():
                         str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
                         str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
                         str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
-                        str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
-                        str(args.CALLER), str(args.HHSUITE_TOOL), str(args.isolation_source),
+                        str(HALL_TYPE), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
+                        str(args.CALLER), str(args.HHSUITE_TOOL), 
+                        str(args.isolation_source),
                         str(args.collection_date), str(args.metagenome_type), str(args.srr_number), 
                         str(args.srx_number), str(args.biosample), str(args.bioproject),
                         str(args.ASSEMBLER), str(args.MOLECULE_TYPE), str(args.DATA_SOURCE)],

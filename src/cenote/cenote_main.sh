@@ -89,6 +89,13 @@ if [ -z ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m ] ; then
 	exit
 fi
 
+if [ -z ${C_DBS}/hmmscan_DBs/v3.0/RDRP_HMMs.h3m ] ; then
+	echo "couldn't find replication hallmark hmm DB at ${C_DBS}/hmmscan_DBs/v3.0/RDRP_HMMs.h3m"
+	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
+	echo "exiting"
+	exit
+fi
+
 if [ -z ${C_DBS}/hmmscan_DBs/v3.0/Useful_Annotation_HMMs.h3m ] ; then
 	echo "couldn't find common virus hmm DB at ${C_DBS}/hmmscan_DBs/v3.0/Useful_Annotation_HMMs.h3m"
 	echo "Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases and setting CENOTE_DBS environmental variable"
@@ -154,7 +161,7 @@ echo "CPUs used for run:                 $CPU" >> ${run_title}/run_arguments.txt
 echo "Annotation only?                   $ANNOTATION_MODE" >> ${run_title}/run_arguments.txt
 echo "minimum circular contig length:    $circ_length_cutoff" >> ${run_title}/run_arguments.txt
 echo "minimum linear contig length:      $linear_length_cutoff" >> ${run_title}/run_arguments.txt
-echo "virus hallmark type to count:      $HALL_TYPE" >> ${run_title}/run_arguments.txt
+echo "virus hallmark type(s) to count:   $HALL_TYPE" >> ${run_title}/run_arguments.txt
 echo "min. viral hallmarks for linear:   $LIN_MINIMUM_DOMAINS" >> ${run_title}/run_arguments.txt
 echo "min. viral hallmarks for circular: $CIRC_MINIMUM_DOMAINS" >> ${run_title}/run_arguments.txt
 echo "Wrap contigs?                      $WRAP" >> ${run_title}/run_arguments.txt
@@ -258,8 +265,11 @@ if [ -n "$SPLIT_ORIG_AAs" ] ; then
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_rep\
 	  ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m $CPU 1e-7
 
+	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_rdrp\
+	  ${C_DBS}/hmmscan_DBs/v3.0/RDRP_HMMs.h3m $CPU 1e-7
+
 	python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
-	  ${TEMP_DIR}/orig_pyhmmer_rep ${HALLMARK_MINIMUM} ${HALL_TYPE} ${TEMP_DIR} ${TEMP_DIR}/contig_name_map.tsv
+	  ${TEMP_DIR}/orig_pyhmmer_rep ${TEMP_DIR}/orig_pyhmmer_rdrp ${HALLMARK_MINIMUM} "${HALL_TYPE}" ${TEMP_DIR} ${TEMP_DIR}/contig_name_map.tsv
 
 else
 	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/ORF_orig_contigs/split"
@@ -681,30 +691,60 @@ SPLIT_REORF_AAs=$( find ${TEMP_DIR}/reORF_pyhmmer1_split -type f -name "*.faa" )
 if [ -n "$SPLIT_REORF_AAs" ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BCyan}time update: running pyhmmer hallmarkdb on reORFs ${MDYT}${Color_Off}"
+	echo -e "${BCyan}time update: running pyhmmer hallmark dbs on reORFs ${MDYT}${Color_Off}"
 
-
+	if [ ! -d ${TEMP_DIR}/virion_reORF_pyhmmer ]; then
+		mkdir ${TEMP_DIR}/virion_reORF_pyhmmer
+	fi
+	
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/virion_reORF_pyhmmer\
 	  ${C_DBS}/hmmscan_DBs/v3.0/Virion_HMMs.h3m $CPU 1e-5
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/rep_reORF_pyhmmer\
 	  ${C_DBS}/hmmscan_DBs/v3.0/DNA_rep_HMMs.h3m $CPU 1e-5
 
-	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer1_split ${TEMP_DIR}/rdrp_reORF_pyhmmer\
+	  ${C_DBS}/hmmscan_DBs/v3.0/RDRP_HMMs.h3m $CPU 1e-5
 
-		if [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
-			awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
-			  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
-		else
-			awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
-			  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
-		fi
+	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ]\
+	  && [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ]\
+	  && [ -s ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv ]; then
+		awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+		  ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+		  ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
 
+	elif [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ]\
+	  && [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+		awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+		  ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+
+	elif [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ]\
+	  && [ -s ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+		awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+		  ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+
+	elif [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+		awk FNR!=1 ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+
+	elif [ -s ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+		awk FNR!=1 ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+
+	elif [ -s ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv ] ; then
+		awk FNR!=1 ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv |\
+		  cut -f1 > ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt
+	fi
+
+	if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 		echo "$SPLIT_REORF_AAs" | while read AA ; do
 			BASE_AA=$( basename $AA )
-			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt $AA > ${TEMP_DIR}/reORF_pyhmmer2_split/${BASE_AA%.faa}.no1.faa
+			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt\
+			  $AA > ${TEMP_DIR}/reORF_pyhmmer2_split/${BASE_AA%.faa}.no1.faa
 		done
-
 
 	else
 		echo "$SPLIT_REORF_AAs" | while read AA ; do
@@ -800,6 +840,7 @@ fi
 #-- ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv
 #-- ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv
 #-- ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv
+#-- ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv
 #-- ${TEMP_DIR}/reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv
 #-- ${HALL_TYPE} (argument)
 #- output: -#
@@ -819,9 +860,10 @@ if [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] && [ -s ${C_D
 
 	python ${CENOTE_SCRIPTS}/python_modules/assess_virus_genes1.py ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv\
 	  ${TEMP_DIR}/reORF/phan_split ${TEMP_DIR}/reORF ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
-	  ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+	  ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
+	  ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${TEMP_DIR}/reORF_mmseqs_combined/summary_no2_AAs_vs_CDD.besthit.tsv ${C_DBS}/viral_cdds_and_pfams_191028.txt \
-	  ${TEMP_DIR}/assess_prune ${HALL_TYPE} ${PROPHAGE}
+	  ${TEMP_DIR}/assess_prune "${HALL_TYPE}" ${PROPHAGE}
 
 else
 	echo "couldn't start assess and prune script"
@@ -941,7 +983,9 @@ if [ "${PHROGS}" == "True" ]  && [ -s ${TEMP_DIR}/hypothetical_proteins.after_ch
 				mkdir ${TEMP_DIR}/phrogs_pyhmmer
 			fi
 
-			cp ${TEMP_DIR}/reORF/reORFcalled_all.faa ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa
+			echo "$PHROGS_AAs" | while read AA ; do
+				cat $AA
+			done > ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa
 
 		fi
 
@@ -955,9 +999,12 @@ else
 fi
 
 
-## hhsearch
-#-# to annotation table add columns
-#-# hhsearch accession, hhsearch description
+### hhblits/hhsearch (installed DBs)
+#- input: -#
+#--  ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa
+#- output: -#
+#--  ${TEMP_DIR}/hhpred/hhpred_report_AAs.tsv
+
 if  [[ $HHSUITE_TOOL = "hhsearch" ]] || [[ $HHSUITE_TOOL = "hhblits" ]] ; then
 	if [ -s ${TEMP_DIR}/phrogs_pyhmmer/all_AA_seqs.no_phrogs.faa ] ; then
 
@@ -976,19 +1023,23 @@ if  [[ $HHSUITE_TOOL = "hhsearch" ]] || [[ $HHSUITE_TOOL = "hhblits" ]] ; then
 
 		HH_AAs=$( find ${TEMP_DIR}/hhpred/AA_files -type f -name "*.faa" )
 
-		if [ -n "$HH_AAs" ] ; then
+		if [ -n "$HH_AAs" ] && [[ $HHSUITE_TOOL = "hhblits" ]] ; then
 			echo "$HH_AAs" | sed 's/.faa//g' |\
 			  xargs -n 1 -I {} -P $CPU hhblits -i {}.faa ${HHSUITE_DB_STR} -o {}.out.hhr\
+			  -cpu 1 -maxmem 1 -p 80 -Z 20 -z 0 -b 0 -B 10 -ssm 2 -sc 1 >/dev/null 2>&1
+
+		elif [ -n "$HH_AAs" ] && [[ $HHSUITE_TOOL = "hhsearch" ]] ; then
+			echo "$HH_AAs" | sed 's/.faa//g' |\
+			  xargs -n 1 -I {} -P $CPU hhsearch -i {}.faa ${HHSUITE_DB_STR} -o {}.out.hhr\
 			  -cpu 1 -maxmem 1 -p 80 -Z 20 -z 0 -b 0 -B 10 -ssm 2 -sc 1 >/dev/null 2>&1
 
 		else
 			echo "AA seqs for hhpred not found"
 		fi
 
-		###parse tables somehow
+		###parse annoying hhpred output files
+		python ${CENOTE_SCRIPTS}/python_modules/hhpred_to_table.py ${TEMP_DIR}/hhpred/AA_files ${TEMP_DIR}/hhpred
 
-
-		###add annotations to annotation table
 
 	else
 		echo "no list of proteins for hhpred"
@@ -1108,7 +1159,7 @@ fi
 #--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 #--  ${TEMP_DIR}/reORF/contig_gcodes1.txt
 #- output: -#
-#--  ${run_title}/sequin_and_genome_maps/*.fsa
+#--  ${run_title}/sequin_and_genome_maps/*.fsa (1 or more)
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
    [ -s ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv ] &&\
@@ -1133,6 +1184,7 @@ fi
 #--  ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv
 #--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.tRNAscan.tsv
 #--  ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv
+#--  ${TEMP_DIR}/hhpred/hhpred_report_AAs.tsv
 #- output: -#
 #--  ${run_title}/sequin_and_genome_maps/*.tbl
 #--  ${run_title}/final_ORF_list.txt
@@ -1145,7 +1197,7 @@ if [ -s ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ] ; then
 	## sequin tbl
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_tbls.py ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv\
 	  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.tRNAscan.tsv ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv\
-	  ${run_title}/sequin_and_genome_maps
+	  ${TEMP_DIR}/hhpred/hhpred_report_AAs.tsv ${run_title}/sequin_and_genome_maps
 
 else
 	echo "couldn't find annotation file for tbl generation"

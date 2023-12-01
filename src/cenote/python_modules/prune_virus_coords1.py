@@ -246,18 +246,24 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     chunk_df.to_csv(chunk_sum_file, sep = "\t", index = False)
 
     ###Find optimal location on plot to place hallmark marker
-    if str(hallmark_arg) == 'virion':
-        vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
-            .query("Evidence_source == 'hallmark_hmm'")
-        
-
-        #print(vir_bait_table)
-    ## will need to update this statement for rna hallmarks
+    if "virion" in str(hallmark_arg):
+        virion_str = "Evidence_source == 'hallmark_hmm'"
     else:
-        vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
-            .query("Evidence_source == 'hallmark_hmm' | Evidence_source == 'rep_hall_hmm'")
-
+        virion_str = ""
+    if "rdrp" in str(hallmark_arg):
+        rdrp_str = "Evidence_source == 'rdrp_hall_hmm'"
+    else:
+        rdrp_str = ""
+    if "dnarep" in str(hallmark_arg):
+        rep_str = "Evidence_source == 'rep_hall_hmm'"
+    else:
+         rep_str = ""
     
+    query_str = ' | '.join(filter(None, [virion_str, rdrp_str, rep_str]))
+
+    vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
+            .query(str(query_str))
+
     vir_bait_table['gene_start'] = vir_bait_table['gene_start'].astype(int)
     vir_bait_table['gene_stop'] = vir_bait_table['gene_stop'].astype(int)
 

@@ -9,15 +9,19 @@ dependencies:
   - prodigal
   - pyrodigal-gv>=0.3.1
   - hhsuite
-  - hmmer
+#  - hmmer
   - mmseqs2
-  - bioawk
+#  - bioawk
 #  - taxonkit
   - trnascan-se
   - minimap2
   - tbl2asn-forever
-  - snakemake
+#  - snakemake
   - biopython
   - bedtools
   - phanotate
   - pyhmmer
+  - findutils
+  - coreutils
+  - sed
+  - grep

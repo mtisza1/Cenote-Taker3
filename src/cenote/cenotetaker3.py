@@ -80,7 +80,7 @@ def cenotetaker3():
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.0.0"
+    __version__ = "3.2.0"
 
     Def_CPUs = os.cpu_count()
 
@@ -105,10 +105,6 @@ def cenotetaker3():
                                 non-circular contigs with viral hallmarks (True is highly recommended for sequenced material \
                                 not enriched for viruses. Virus-enriched samples probably should be False (you might check \
                                 enrichment with ViromeQC). Also, please use False if --lin_minimum_hallmark_genes is set to 0)')
-    #required_args.add_argument("-m", "--mem", dest="MEM", type=int, required=True, help='example: 56 -- Gigabytes of memory available for Cenote-Taker3. Typically, 16 to 32 should be used. Aim for at least 1/2 the value of \'-\' ')
-
-
-
 
 
     optional_args = parser.add_argument_group(' OPTIONAL ARGUMENTS for Cenote-Taker 3. See \
@@ -158,11 +154,11 @@ def cenotetaker3():
                                 domains cautiously. For unenriched samples, \'1\' might be more suitable. ')
     #optional_args.add_argument("--known_strains", dest="handle_knowns", type=str, default='do_not_check_knowns', help='Default: do_not_check_knowns -- do not check if putatively viral contigs are highly related to known sequences (via MEGABLAST). \'blast_knowns\': REQUIRES \'--blastn_db\' option to function correctly. ')
     #optional_args.add_argument("--blastn_db", dest="BLASTN_DB", type=str, default='none', help='Default: none -- Set a database if using \'--known_strains\' option. Specify BLAST-formatted nucleotide datase. Probably, use only GenBank \'nt\' database, \'nt viral\', or a subset therof, downloaded from ftp://ftp.ncbi.nlm.nih.gov/ Headers must be GenBank record format')
-    optional_args.add_argument("--enforce_start_codon", dest="ENFORCE_START_CODON", type=str2bool, default=False, 
-                            help='Default: False -- For final genome maps, require ORFs to be initiated by a typical \
-                                start codon? GenBank submissions containing ORFs without start codons can be rejected. \
-                                However, if True,  important but incomplete genes could be culled from the final output. \
-                                This is relevant mainly to contigs of incomplete genomes ')
+    #optional_args.add_argument("--enforce_start_codon", dest="ENFORCE_START_CODON", type=str2bool, default=False, 
+    #                        help='Default: False -- For final genome maps, require ORFs to be initiated by a typical \
+    #                            start codon? GenBank submissions containing ORFs without start codons can be rejected. \
+    #                            However, if True,  important but incomplete genes could be culled from the final output. \
+    #                            This is relevant mainly to contigs of incomplete genomes ')
     optional_args.add_argument("-hh", "--hhsuite_tool", dest="HHSUITE_TOOL", type=str, 
                                choices=['none', 'hhblits', 'hhsearch'], default='none', 
                             help=' default: none -- hhblits: query any of PDB, pfam, and CDD (depending on what is installed)\
@@ -232,10 +228,6 @@ def cenotetaker3():
     optional_args.add_argument("--phrogs", dest="PHROGS", type=str2bool, default="True", 
                             help='Default: True -- Use PHROG HMMs to add annotations? See github repo for DB download \
                                 instructions')
-    optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="False", help=argparse.SUPPRESS)
-                            #use snakemake file (instead of bash)?
-    optional_args.add_argument("--until", dest="UNTIL", type=str, default="all", help=argparse.SUPPRESS)
-                            #run snakemake until
 
 
     args = parser.parse_args()
@@ -346,6 +338,13 @@ def cenotetaker3():
         logger.warning("biopython not found in installed python packages. Exiting.")
         quit()
 
+    if 'pyrodigal' not in installed_packages:
+        logger.warning("pyrodigal not found in installed python packages. Exiting.")
+        quit()
+
+    if 'pyrodigal_gv' not in installed_packages:
+        logger.warning("pyrodigal_gv not found in installed python packages. Exiting.")
+        quit()
 
     ## check run_title suitability
     if re.search(r'^[a-zA-Z0-9_]+$', str(args.run_title)) and \
@@ -357,85 +356,30 @@ def cenotetaker3():
               18 characters or less. Exiting.")
         quit()
 
-    ## this snakemake script is not in production, please ignore
-    if args.SMK == True:
-        ## making config file from arguments
-        config_smk = (
-            f"CENOTE_SCRIPTS: {str(cenote_script_path)}\n"
-            f"original_contigs: {str(args.original_contigs)}\n"
-            f"run_title: {str(args.run_title)}\n"
-            f"PROPHAGE: {str(args.PROPHAGE)}\n"
-            f"CPU: {str(args.CPU)}\n"
-            f"VERSION: {str(__version__)}\n"
-            f"ANNOTATION_MODE: {str(args.ANNOTATION_MODE)}\n"
-            f"TEMPLATE_FILE: {str(args.template_file)}\n"
-            f"READS: {str(READS)}\n"
-            f"circ_length_cutoff: {str(args.circ_length_cutoff)}\n"
-            f"linear_length_cutoff: {str(args.linear_length_cutoff)}\n"
-            f"CIRC_MINIMUM_DOMAINS: {str(args.CIRC_MINIMUM_DOMAINS)}\n"
-            f"LIN_MINIMUM_DOMAINS: {str(args.LIN_MINIMUM_DOMAINS)}\n"
-            f"HALL_TYPE: {str(args.virus_domain_db)}\n"
-            f"C_DBS: {str(args.C_DBS)}\n"
-            f"WRAP: {str(args.WRAP)}\n"
-            f"PHROGS: {str(args.PHROGS)}\n"
-            f"CALLER: {str(args.CALLER)}\n"
-        )
-
-        out_conf = os.path.join(str(args.run_title), "smk_config.yaml")
-        with open(out_conf, "w") as f:
-            f.write(config_smk)
-
-        print(config_smk)
-
-        SMK_FILE = os.path.join(cenote_script_path, "Snakefile")
-        smk_cmd = (
-            f"snakemake --snakefile {SMK_FILE} "
-            f"--directory {os.getcwd()} "
-            f"--cores {int(args.CPU)} "
-            f"--configfile {out_conf} "
-            f"--until {str(args.UNTIL)}"
-        )
-        reportf = os.path.join(str(args.run_title), "run_report.html")
-        smk_report_cmd = (
-            f"snakemake --snakefile {SMK_FILE} "
-            f"--directory {os.getcwd()} "
-            f"--cores {int(args.CPU)} "
-            f"--configfile {out_conf} "
-            f"--report {reportf}"
-        ) 
-
-        try:
-            subprocess.run(smk_cmd, check=True, shell=True)
-            subprocess.run(smk_report_cmd, check=True, shell=True)
-        except:
-            logger.warning("couldn't run snakemake")
-        
 
 
-    else:
+    #### define logging of subprocess (cenote_main.sh) ####
+    def log_subprocess_output(pipe):
+        for line in iter(pipe.readline, b''): # b'\n'-separated lines
+            logger.info(line.decode("utf-8").rstrip('\n'))
 
-        #### define logging of subprocess (cenote_main.sh) ####
-        def log_subprocess_output(pipe):
-            for line in iter(pipe.readline, b''): # b'\n'-separated lines
-                logger.info(line.decode("utf-8").rstrip('\n'))
+    ### run the main script
+    process = Popen(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
+                    str(args.original_contigs), str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
+                    str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
+                    str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
+                    str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
+                    str(HALL_TYPE), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
+                    str(args.CALLER), str(args.HHSUITE_TOOL), 
+                    str(args.isolation_source),
+                    str(args.collection_date), str(args.metagenome_type), str(args.srr_number), 
+                    str(args.srx_number), str(args.biosample), str(args.bioproject),
+                    str(args.ASSEMBLER), str(args.MOLECULE_TYPE), str(args.DATA_SOURCE)],
+                    stdout=PIPE, stderr=STDOUT)
 
-        ### run the main script
-        process = Popen(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
-                        str(args.original_contigs), str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
-                        str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
-                        str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
-                        str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
-                        str(HALL_TYPE), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
-                        str(args.CALLER), str(args.HHSUITE_TOOL), 
-                        str(args.isolation_source),
-                        str(args.collection_date), str(args.metagenome_type), str(args.srr_number), 
-                        str(args.srx_number), str(args.biosample), str(args.bioproject),
-                        str(args.ASSEMBLER), str(args.MOLECULE_TYPE), str(args.DATA_SOURCE)],
-                        stdout=PIPE, stderr=STDOUT)
-
-        with process.stdout:
-            log_subprocess_output(process.stdout)
-        exitcode = process.wait()
+    with process.stdout:
+        log_subprocess_output(process.stdout)
+    exitcode = process.wait()
 
     ct_endtime = time.time()
 

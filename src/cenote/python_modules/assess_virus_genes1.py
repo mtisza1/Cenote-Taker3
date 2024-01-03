@@ -179,6 +179,7 @@ try:
     cdd_df['Evidence_source'] = 'mmseqs_cdd'
 except:
     print("no CDD")
+    cdd_df = pd.DataFrame()
 
 
 ## load file with list of additional common virus genes
@@ -208,7 +209,7 @@ df_list = [virion_ppyh_df, comm_pyh_df, rep_pyh_df, rdrp_pyh_df, comb_cdd_df]
 gene_ann_list = []
 
 for hdf in df_list:
-    if not hdf.empty():
+    if not hdf.empty:
         gene_ann_list.append(hdf)
 
 

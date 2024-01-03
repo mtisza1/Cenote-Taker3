@@ -352,7 +352,7 @@ def cenotetaker3():
                      'bedtools', 'phanotate.py', 'mmseqs']
     
     for tool in tool_dep_list:
-        if not is_tool(str(tool)):
+        if not is_tool(tool):
             logger.warning(f"{tool} is not found. Exiting.")
             quit()   
 

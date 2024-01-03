@@ -21,3 +21,4 @@ dependencies:
   - coreutils
   - sed
   - grep
+  - samtools

@@ -27,11 +27,7 @@ if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
 
-
-
-#print("pyhmmscan pool part")
-
-starttime = time.time()
+starttime = time.perf_counter()
 
 def hmmscanner(seqs):
     scanout = list(hmmscan(pyhmmer.easel.SequenceFile(seqs, digital=True), pyhmmer.plan7.HMMFile(which_DB)))
@@ -100,8 +96,8 @@ if not hmmscan_contig_sum.empty:
     hmmscan_contig_sum.to_csv(contig_sum_file,
                             sep = "\t", index = False)
 
-endtime = time.time()
+endtime = time.perf_counter()
 
 time_taken = endtime - starttime
 
-print("pyhmmscan part took: " + "%.2f" % time_taken + " seconds")
+print(f"pyhmmscan of {os.path.basename(which_DB)} finished in " + "%.2f" % time_taken + " seconds")

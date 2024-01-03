@@ -12,7 +12,7 @@ import random
 import string
 import re
 import logging
-
+from distutils.spawn import find_executable
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -29,7 +29,6 @@ def str2bool(v):
 def validate_fasta(filename):
 	with open(filename, "r") as handle:
 		fasta = SeqIO.parse(handle, "fasta")
-		print("Checking Input FASTA.")
 		if any(fasta):
 			print("FASTA checked.")
 		else:
@@ -73,10 +72,10 @@ def art_for_arts_sake():
 
 ### entry point function for cenote-taker
 def cenotetaker3():   
-    ct_starttime = time.time()              
+    ct_starttime = time.perf_counter()
     pathname = os.path.dirname(__file__)  
     cenote_script_path = os.path.abspath(pathname)      
-    print("this script dir: " + str(cenote_script_path))
+    print(f"this script dir: {str(cenote_script_path)}")
 
     parentpath = Path(pathname).parents[1]
 
@@ -117,7 +116,8 @@ def cenotetaker3():
     optional_args.add_argument("-am", "--annotation_mode", dest="ANNOTATION_MODE", type=str2bool, default="False", 
                             help='Default: False -- Annotate sequences only (skip discovery). Only use if you believe \
                                 each provided sequence is viral')
-    optional_args.add_argument("--template_file", dest="template_file", type=str, default=str(cenote_script_path) + '/dummy_template.sbt', 
+    optional_args.add_argument("--template_file", dest="template_file", type=str, 
+                            default=str(cenote_script_path) + '/dummy_template.sbt', 
                             help='Template file with some metadata. Real one required for GenBank submission. Takes a \
                                 couple minutes to generate: https://submit.ncbi.nlm.nih.gov/genbank/template/submission/ ')
     optional_args.add_argument("--reads", nargs="+",
@@ -222,12 +222,11 @@ def cenotetaker3():
     optional_args.add_argument("--cenote-dbs", dest="C_DBS", type=str, default="default", 
                             help='DB path. If not set here, Cenote-Taker looks for environmental variable CENOTE_DBS. \
                                 Then, if this variable is unset, DB path is assumed to be ' + str(parentpath))
+    optional_args.add_argument("--hmmscan_dbs", dest="HMM_DBS", type=str, default="v3.1.0", 
+                            help='HMMscan DB version. looks in cenote_db_path/hmmscan_DBs/')
     optional_args.add_argument("--wrap", dest="WRAP", type=str2bool, default="True", 
                             help='Default: True -- Wrap/rotate DTR/circular contigs so the start codon of an ORF is \
                                 the first nucleotide in the contig/genome')
-    optional_args.add_argument("--phrogs", dest="PHROGS", type=str2bool, default="True", 
-                            help='Default: True -- Use PHROG HMMs to add annotations? See github repo for DB download \
-                                instructions')
 
 
     args = parser.parse_args()
@@ -263,8 +262,8 @@ def cenotetaker3():
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
     #########################
-    art_for_arts_sake()
 
+    art_for_arts_sake()
 
     validate_fasta(args.original_contigs)
 
@@ -273,8 +272,6 @@ def cenotetaker3():
         READS = ' '.join(map(str,args.READS))
     else:
         READS = str(args.READS)
-    #print(READS)
-
 
     ## DB path check/change
     if args.C_DBS == "default" and os.getenv('CENOTE_DBS') != None:
@@ -282,69 +279,93 @@ def cenotetaker3():
     elif args.C_DBS == "default":
         args.C_DBS = parentpath
 
+    ## check that all DBs exist
+    def check_ct3_dbs():
+        ## checking db path
+        if not os.path.isdir(str(args.C_DBS)):
+            logger.warning(f"database directory is not found at {str(args.C_DBS)}. Exiting.")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            quit()
+        ## checking hmm dir
+        if not os.path.isdir(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))):
+            logger.warning(f"hmm db directory is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))}")
+            logger.warning(f"looking for others in {os.path.join(str(args.C_DBS), 'hmmscan_DBs')}")
+            for path, subdirs, files in os.walk(os.path.join(str(args.C_DBS), 'hmmscan_DBs')):
+                for name in files:
+                    if name == 'Virion_HMMs.h3m':
+                        bottom_dir = path.split('/')[-1:][0]
+                        sec_dir = '/'.join(path.split('/')[0:-1])
+                        if sec_dir == os.path.join(str(args.C_DBS), 'hmmscan_DBs'):
+                            args.HMM_DBS = bottom_dir
+                        else:
+                            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3\
+                                           for installing databases\
+                                           and setting CENOTE_DBS environmental variable")
+                            logger.warning("Exiting.")
+                            quit()
+        ## checking hmm files
+        hmm_flist = ['Virion_HMMs.h3m', 'DNA_rep_HMMs.h3m', 'RDRP_HMMs.h3m', 
+                     'Useful_Annotation_HMMs.h3m', 'phrogs_for_ct.h3m']
+        for hf in hmm_flist:
+            if not os.path.isfile(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS), hf)):
+                logger.warning(f"hmm db file is not found at")
+                logger.warning(f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS), hf)}")
+                logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                            and setting CENOTE_DBS environmental variable")
+                logger.warning("Exiting.")
+                quit()
+        ## checking mmseqs tax db
+        if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'refseq_virus_prot_taxDB')):
+            logger.warning(f"mmseqs tax db file is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'refseq_virus_prot_taxDB')}")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            logger.warning("Exiting.")
+            quit()
+        ## checking mmseqs cdd db
+        if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'CDD')):
+            logger.warning(f"mmseqs CDD db file is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'CDD')}")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            logger.warning("Exiting.")
+            quit()
+         ## checking virus domain list file
+        if not os.path.isfile(os.path.join(str(args.C_DBS), 'viral_cdds_and_pfams_191028.txt')):
+            logger.warning(f"virus domain list file is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'viral_cdds_and_pfams_191028.txt')}")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            logger.warning("Exiting.")
+            quit()
+
+    check_ct3_dbs()
+
+    ### check dependencies
     def is_tool(name):
         """Check whether `name` is on PATH."""
-        from distutils.spawn import find_executable
         return find_executable(name) is not None
 
-    if not is_tool("samtools") and str(READS) != "none" :
-        logger.warning("samtools is not found. Exiting.")
-        quit()    
-    if not is_tool("minimap2") and str(READS) != "none" :
-        logger.warning("minimap2 is not found. Exiting.")
-        quit()
-    if not is_tool("tRNAscan-SE") :
-        logger.warning("tRNAscan-SE is not found. Exiting.")
-        quit()
-    if not is_tool("tbl2asn") :
-        logger.warning("tbl2asn is not found. Exiting.")
-        quit()
-    if not is_tool("seqkit") :
-        logger.warning("seqkit is not found. Exiting.")
-        quit()
-    #    if not is_tool("hhblits") :
-    #        print ("hhblits is not found. Exiting.")
-    #        quit()
-    if not is_tool("bedtools") :
-        logger.warning("bedtools is not found. Exiting.")
-        quit()
-    if not is_tool("phanotate.py") :
-        logger.warning("phanotate is not found. Exiting.")
-        quit()
-    if not is_tool("prodigal") :
-        logger.warning("prodigal is not found. Exiting.")
-        quit()
-    if not is_tool("mmseqs") :
-        logger.warning("mmseqs is not found. Exiting.")
-        quit()
+    tool_dep_list = ['samtools', 'minimap2', 'tRNAscan-SE', 'seqkit', 'hhblits', 
+                     'bedtools', 'phanotate.py', 'mmseqs']
+    
+    for tool in tool_dep_list:
+        if not is_tool(str(tool)):
+            logger.warning(f"{tool} is not found. Exiting.")
+            quit()   
+
 
     reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
     installed_packages = [r.decode().split('==')[0] for r in reqs.split()]
 
+    python_dep_list = ['pyhmmer', 'numpy', 'pandas', 'biopython', 'pyrodigal-gv']
 
-    if 'pyhmmer' not in installed_packages:
-        logger.warning("pyhmmer not found in installed python packages. Exiting.")
-        quit()
-
-    if 'numpy' not in installed_packages:
-        logger.warning("numpy not found in installed python packages. Exiting.")
-        quit()
-
-    if 'pandas' not in installed_packages:
-        logger.warning("pandas not found in installed python packages. Exiting.")
-        quit()
-
-    if 'biopython' not in installed_packages:
-        logger.warning("biopython not found in installed python packages. Exiting.")
-        quit()
-
-    if 'pyrodigal' not in installed_packages:
-        logger.warning("pyrodigal not found in installed python packages. Exiting.")
-        quit()
-
-    if 'pyrodigal_gv' not in installed_packages:
-        logger.warning("pyrodigal_gv not found in installed python packages. Exiting.")
-        quit()
+    for pydep in python_dep_list:
+        if pydep not in installed_packages:
+            logger.warning(f"{pydep} not found in installed python packages. Exiting.")
+            quit() 
 
     ## check run_title suitability
     if re.search(r'^[a-zA-Z0-9_]+$', str(args.run_title)) and \
@@ -355,7 +376,6 @@ def cenotetaker3():
         logger.warning( "the run title needs to be only letters, numbers and underscores (_) and \
               18 characters or less. Exiting.")
         quit()
-
 
 
     #### define logging of subprocess (cenote_main.sh) ####
@@ -369,25 +389,25 @@ def cenotetaker3():
                     str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
                     str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
                     str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
-                    str(HALL_TYPE), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
+                    str(HALL_TYPE), str(args.C_DBS), str(args.HMM_DBS), str(args.WRAP), 
                     str(args.CALLER), str(args.HHSUITE_TOOL), 
-                    str(args.isolation_source),
-                    str(args.collection_date), str(args.metagenome_type), str(args.srr_number), 
-                    str(args.srx_number), str(args.biosample), str(args.bioproject),
-                    str(args.ASSEMBLER), str(args.MOLECULE_TYPE), str(args.DATA_SOURCE)],
+                    str(args.isolation_source), str(args.collection_date), str(args.metagenome_type), 
+                    str(args.srr_number), str(args.srx_number), str(args.biosample), 
+                    str(args.bioproject), str(args.ASSEMBLER), str(args.MOLECULE_TYPE), 
+                    str(args.DATA_SOURCE)],
                     stdout=PIPE, stderr=STDOUT)
 
     with process.stdout:
         log_subprocess_output(process.stdout)
     exitcode = process.wait()
 
-    ct_endtime = time.time()
+    ct_endtime = time.perf_counter()
 
     time_taken = ct_endtime - ct_starttime
 
     time_taken = round(time_taken, 2) 
 
-    logger.info("This Cenote-Taker run took: " + str(timedelta(seconds=time_taken)))
+    logger.info("This Cenote-Taker run finished in " + str(timedelta(seconds=time_taken)))
 
 if __name__ == "__main__":
     cenotetaker3()

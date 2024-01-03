@@ -32,6 +32,7 @@ script-files = ["src/cenote/cenote_main.sh", "src/cenote/dummy_template.sbt"]
 
 [project.scripts]  
 cenotetaker3 = "cenote:cenotetaker3"
+get_ct3_dbs = "cenote:get_ct3_dbs"
 
 [project.urls]
 "Homepage" = "https://github.com/cmmr/Cenote-Taker3"

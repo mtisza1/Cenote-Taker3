@@ -25,7 +25,7 @@ orf_caller = sys.argv[4]
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
-starttime = time.time()
+starttime = time.perf_counter()
 
 records = SeqIO.parse(input_fasta, "fasta")
 
@@ -45,8 +45,8 @@ with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
                 genes.write_translations(dst, sequence_id=record_id)
                 genes.write_gff(dgff, sequence_id=record_id)
 
-endtime = time.time()
+endtime = time.perf_counter()
 
 time_taken = endtime - starttime
 
-print("pyrodigal part took: " + "%.2f" % time_taken + " seconds")
+print("pyrodigal part finished in " + "%.2f" % time_taken + " seconds")

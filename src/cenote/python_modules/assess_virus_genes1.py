@@ -203,24 +203,14 @@ try:
 except:
     print("no CDD mmseqs table")
 
-
 ## combine pyhmmer and mmseqs tables with contig/gene table for all gene annotations
+df_list = [virion_ppyh_df, comm_pyh_df, rep_pyh_df, rdrp_pyh_df, comb_cdd_df]
 gene_ann_list = []
 
-if not virion_ppyh_df.empty:
-    gene_ann_list.append(virion_ppyh_df)
+for hdf in df_list:
+    if not hdf.empty():
+        gene_ann_list.append(hdf)
 
-if not comm_pyh_df.empty:
-    gene_ann_list.append(comm_pyh_df)
-
-if not rep_pyh_df.empty:
-    gene_ann_list.append(rep_pyh_df)
-
-if not rdrp_pyh_df.empty:
-    gene_ann_list.append(rdrp_pyh_df)
-
-if not comb_cdd_df.empty:
-    gene_ann_list.append(comb_cdd_df)
 
 try:
     gene_ann_df = pd.concat(gene_ann_list, ignore_index=True)

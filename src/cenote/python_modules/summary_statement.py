@@ -29,7 +29,7 @@ pruned_seqs = len(prune_df.query('contig_length >= 10_000 & chunk_length < conti
 all_genes = len(gene_df['gene_name'].drop_duplicates())
 nonhypo_genes = len(gene_df.query('evidence_description != "hypothetical protein"')['gene_name'].drop_duplicates())
 
-lc = '\033[33m'
+lc = '\033[91m'
 pc = '\033[35m'
 endc = '\033[0m'
 

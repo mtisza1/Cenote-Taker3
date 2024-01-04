@@ -27,12 +27,12 @@ def str2bool(v):
 ## taken directly from pharokka 
 ## (https://github.com/gbouras13/pharokka/blob/master/bin/input_commands.py)
 def validate_fasta(filename):
-	with open(filename, "r") as handle:
-		fasta = SeqIO.parse(handle, "fasta")
-		if any(fasta):
-			print("FASTA checked.")
-		else:
-			sys.exit("Error: Input file is not in the FASTA format.\n")
+    with open(filename, "r") as handle:
+        fasta = SeqIO.parse(handle, "fasta")
+        if any(fasta):
+            print("FASTA checked.")
+        else:
+            sys.exit("Error: Input file is not in the FASTA format.\n")
 
 ## important random color ASCII-logo printer
 def art_for_arts_sake():

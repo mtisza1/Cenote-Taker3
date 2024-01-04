@@ -1268,6 +1268,11 @@ if [ -s ${run_title}/final_genes_to_contigs_annotation_summary.tsv ] ; then
 	  ${run_title}/sequin_and_genome_maps ${run_title} ${TEMP_DIR}/reORF/contig_gcodes1.txt\
 	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt $CALLER
 
+	python ${CENOTE_SCRIPTS}/python_modules/summary_statement.py\
+	  ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta $LENGTH_MINIMUM\
+	  ${run_title}/${run_title}_virus_summary.tsv ${run_title}/${run_title}_prune_summary.tsv\
+	  ${run_title}/final_genes_to_contigs_annotation_summary.tsv
+
 else
 	echo "couldn't find files to make run summary"
 

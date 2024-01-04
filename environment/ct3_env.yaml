@@ -1,4 +1,4 @@
-name: ct3_beta
+name: ct3_env
 channels:
   - defaults
   - bioconda

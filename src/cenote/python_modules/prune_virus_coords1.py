@@ -78,7 +78,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
 
     df_0 = pd.DataFrame(dat_list, columns=['Window', 'Position start', 'Position stop',
                                              'Pass/Fail', 'Score', 'VirusGene', 'HypotheticalGene', 
-                                             'Intergenic', 'BacterialGene'])
+                                             'BacterialGene', 'Intergenic']) ##mjt
 
     #Now let's make the smoothed plot
 
@@ -155,7 +155,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     #merged_df = merged_df.append(merged_df[-1:])
     merged_df = pd.concat([merged_df, merged_df[-1:]])
     #now need to make it read actual last stop position (this os not rounded per window like the other coords)
-    merged_df = merged_df.replace(merged_df.iloc[-1][3],(total_len+1))
+    merged_df = merged_df.replace(merged_df['Position stop'].iloc[-1],(total_len+1))
 
     #now let's get the coordinates for the > 0 'chunks'
     #iterate over for true hit testing

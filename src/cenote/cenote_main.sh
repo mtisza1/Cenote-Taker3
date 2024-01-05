@@ -272,19 +272,34 @@ fi
 ### detecting DTRs and ITRs. Trimming DTRs
 #- input: -#
 #-- ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta
-#-- $WRAP (boolean)
+#-- ${TEMP_DIR}/hallmarks_per_orig_contigs.tsv
+#-- variables: $circ_length_cutoff $linear_length_cutoff $CIRC_MINIMUM_DOMAINS $WRAP (boolean)
 #- output: -#
 #-- ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta
-#-- hallmark_contigs_terminal_repeat_summary.tsv
+#-- ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
+#-- ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv
 #----	fields
 #----	(contig	in_length_contig	out_length_contig	dtr_seq	itr_seq)
+#-- ${TEMP_DIR}/contigs_over_threshold.txt
+#-- ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta
 
 if [ -s ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}detecting DTRs and ITRs ${MDYT}${Color_Off}"
 
-	python ${CENOTE_SCRIPTS}/python_modules/terminal_repeats.py ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta ${TEMP_DIR} $WRAP
+	python ${CENOTE_SCRIPTS}/python_modules/terminal_repeats.py ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta\
+	${TEMP_DIR}/hallmarks_per_orig_contigs.tsv $circ_length_cutoff $linear_length_cutoff $CIRC_MINIMUM_DOMAINS\
+	$LIN_MINIMUM_DOMAINS ${TEMP_DIR} $WRAP
+
+	if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/contigs_over_threshold.txt ] ; then
+		
+		seqkit grep --quiet -f ${TEMP_DIR}/contigs_over_threshold.txt\
+		  ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta > ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta
+
+	else
+		echo "couldn't find contigs_over_threshold.txt. No virus contigs over set thresholds."
+	fi
 
 else
 	echo "couldn't find hallmark contigs at ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta"
@@ -293,12 +308,12 @@ fi
 
 ### Rotating DTR contigs
 #- input: -#
-#-- ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta
-#-- ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
+#-- ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta
+#-- ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv
 #- output: -#
 #-- ${TEMP_DIR}/oriented_hallmark_contigs.fasta
 
-if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
+if [ -s ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta ] && [ -s ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ] ; then
 	if [ "$WRAP" == "True" ] ; then
 
 		MDYT=$( date +"%m-%d-%y---%T" )
@@ -308,9 +323,9 @@ if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/hal
 			mkdir ${TEMP_DIR}/rotation
 		fi
 
-		awk '{OFS=FS="\t"}{ if (NR != 1 && $4 != "NA") {print $1, $3} }' ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv |\
+		awk '{OFS=FS="\t"}{ if (NR != 1 && $4 != "NA") {print $1, $3} }' ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv |\
 		  while read DTR_CONTIG TRIM_LENGTH ; do
-			seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta |\
+			seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta |\
 			  prodigal -a ${TEMP_DIR}/rotation/${DTR_CONTIG}.unrotated.faa -i /dev/stdin -c -p meta -q >/dev/null 2>&1
 			FWD_GENES=$( grep "^>" ${TEMP_DIR}/rotation/${DTR_CONTIG}.unrotated.faa | sed 's/ # /	/g' |\
 				awk '{FS=OFS="\t"}{if ($0 ~ "partial=00;start_type" && $4 == 1) {print $4}}' | wc -l )
@@ -320,10 +335,10 @@ if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/hal
 				START_BASE=$( grep "^>" ${TEMP_DIR}/rotation/${DTR_CONTIG}.unrotated.faa | sed 's/ # /	/g' |\
 					awk '{FS=OFS="\t"}{if ($0 ~ "partial=00;start_type" && $4 == 1) {print $2, ($3-$2)}}' |\
 					sort -rg -k2,2 | head -n1 | cut -f1 )
-				seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta |\
+				seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta |\
 				  seqkit restart --quiet -i ${START_BASE} > ${TEMP_DIR}/rotation/${DTR_CONTIG}.rotate.fasta
 			elif [ $REV_GENES -ge 1 ]; then
-				seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta |\
+				seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta |\
 				  seqkit seq --quiet -t DNA -r -p > ${TEMP_DIR}/rotation/${DTR_CONTIG}.rc.fna
 				prodigal -a ${TEMP_DIR}/rotation/${DTR_CONTIG}.rc.faa -i ${TEMP_DIR}/rotation/${DTR_CONTIG}.rc.fna -p meta -q >/dev/null 2>&1
 				RC_FWD_GENES=$( grep "^>" ${TEMP_DIR}/rotation/${DTR_CONTIG}.rc.faa | sed 's/ # /	/g' |\
@@ -336,19 +351,19 @@ if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/hal
 					  seqkit restart --quiet -i ${START_BASE} > ${TEMP_DIR}/rotation/${DTR_CONTIG}.rotate.fasta
 				else
 					echo "Can't find suitable ORF to set rotation of ${DTR_CONTIG} and will remain unrotated"
-					seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta > ${TEMP_DIR}/rotation/${DTR_CONTIG}.rotate.fasta
+					seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta > ${TEMP_DIR}/rotation/${DTR_CONTIG}.rotate.fasta
 				fi
 			else
 				echo "Can't find suitable ORF to set rotation of $nucl_fa and will remain unrotated"
-				seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta > ${TEMP_DIR}/rotation/${DTR_CONTIG}.rotate.fasta
+				seqkit grep --quiet -p "${DTR_CONTIG}" ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta > ${TEMP_DIR}/rotation/${DTR_CONTIG}.rotate.fasta
 			fi
 		done
 
-		awk '{OFS=FS="\t"}{ if (NR != 1 && $4 == "NA") {print $1} }' ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv > ${TEMP_DIR}/hallmark_contigs_no_DTRS.txt
+		awk '{OFS=FS="\t"}{ if (NR != 1 && $4 == "NA") {print $1} }' ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv > ${TEMP_DIR}/hallmark_contigs_no_DTRS.txt
 
 		if [ -s ${TEMP_DIR}/hallmark_contigs_no_DTRS.txt ] ; then
 			seqkit grep --quiet -f ${TEMP_DIR}/hallmark_contigs_no_DTRS.txt\
-			  ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta > ${TEMP_DIR}/hallmark_contigs_no_DTRS.fasta
+			  ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta > ${TEMP_DIR}/hallmark_contigs_no_DTRS.fasta
 		fi
 
 		ALL_DTRS=$( find ${TEMP_DIR}/rotation -type f -name "*.rotate.fasta" )
@@ -371,10 +386,10 @@ if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/hal
 	else
 		echo "not wrapping"
 		
-		cp ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ${TEMP_DIR}/oriented_hallmark_contigs.fasta
+		cp ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta ${TEMP_DIR}/oriented_hallmark_contigs.fasta
 	fi
 else
-	echo "couldn't find hallmark contigs with processed terminal repeats at ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta"
+	echo "couldn't find threshold contigs with processed terminal repeats at ${TEMP_DIR}/threshold_trimmed_TRs_contigs.fasta"
 fi
 
 
@@ -452,7 +467,7 @@ else
 	### parse taxonomy on hallmark gene mmseqs2 search and decide final ORF caller
 	#- input: -#
 	#-- ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv
-	#-- ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
+	#-- ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv
 	#- output: -#
 	#-- ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
 	#-- ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
@@ -460,15 +475,15 @@ else
 	#----	fields
 	#----	(contig	out_length_contig	query	target	pident	alnlen	evalue	theader	taxlineage	ORFcaller	pos	Note)
 
-	if [ -e ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv ] && [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
+	if [ -e ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv ] && [ -s ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ] ; then
 		MDYT=$( date +"%m-%d-%y---%T" )
 		echo -e "${BGreen}choosing ORF caller for each sequence ${MDYT}${Color_Off}"
 
 		python ${CENOTE_SCRIPTS}/python_modules/orfcaller_decision1.py ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv\
-		  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR}/hallmark_tax
+		  ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ${TEMP_DIR}/hallmark_tax
 
 	else
-		echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv or ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv"
+		echo "couldn't find ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv or ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv"
 		exit
 	fi
 fi
@@ -800,7 +815,7 @@ fi
 
 ### Assess all the gene annotations to make annotation table and determine virus chunks
 #- input: -#
-#-- ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
+#-- ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv
 #-- ${TEMP_DIR}/reORF/phan_split/*bed (1 or more)
 #-- ${TEMP_DIR}/reORF/pyrodigal_gv_AAs.prod.gff
 #-- ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv
@@ -819,12 +834,12 @@ fi
 #----	(contig	left_cutoff	right_cutoff	chunk_number)
 #-- ${TEMP_DIR}/assess_prune/prune_figures/*figures.pdf (0 or more)
 
-if [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] && [ -s ${C_DBS}/viral_cdds_and_pfams_191028.txt ] ; then
+if [ -s ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ] && [ -s ${C_DBS}/viral_cdds_and_pfams_191028.txt ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BCyan}time update: assessing each gene on all contigs and scoring contigs for virusness  ${MDYT}${Color_Off}"
 
-	python ${CENOTE_SCRIPTS}/python_modules/assess_virus_genes1.py ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv\
+	python ${CENOTE_SCRIPTS}/python_modules/assess_virus_genes1.py ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv\
 	  ${TEMP_DIR}/reORF/phan_split ${TEMP_DIR}/reORF ${TEMP_DIR}/virion_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv ${TEMP_DIR}/rep_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
 	  ${TEMP_DIR}/rdrp_reORF_pyhmmer/pyhmmer_report_AAs.tsv\
@@ -1077,7 +1092,7 @@ fi
 if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BYellow}time update: reassessing taxonomy on final virus seqs ${MDYT}${Color_Off}"
+	echo -e "${BYellow}time update: reassessing taxonomy on final virus seqs with mmseqs2 ${MDYT}${Color_Off}"
 
 
 	seqkit grep --quiet -f ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt\
@@ -1119,7 +1134,7 @@ fi
 #- input: -#
 #--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
 #--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
-#--  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv
+#--  ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv
 #--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 #--  ${TEMP_DIR}/reORF/contig_gcodes1.txt
 #- output: -#
@@ -1127,14 +1142,14 @@ fi
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
    [ -s ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv ] &&\
-   [ -s ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ] ; then
+   [ -s ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: Making genome map and sequin files ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_fsas.py ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta\
 	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv\
-	  ${TEMP_DIR}/hallmark_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps\
+	  ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps\
 	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ${TEMP_DIR}/reORF/contig_gcodes1.txt $ISO_SOURCE\
 	  $COLLECT_DATE $META_TYPE $SRR $SRX $BIOSAMP $PRJ $MOL_TYPE $DATA_SOURCE
 
@@ -1271,7 +1286,7 @@ if [ -s ${run_title}/final_genes_to_contigs_annotation_summary.tsv ] ; then
 	python ${CENOTE_SCRIPTS}/python_modules/summary_statement.py\
 	  ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta $LENGTH_MINIMUM\
 	  ${run_title}/${run_title}_virus_summary.tsv ${run_title}/${run_title}_prune_summary.tsv\
-	  ${run_title}/final_genes_to_contigs_annotation_summary.tsv
+	  ${run_title}/final_genes_to_contigs_annotation_summary.tsv $ANNOTATION_MODE
 
 else
 	echo "couldn't find files to make run summary"

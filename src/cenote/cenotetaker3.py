@@ -131,21 +131,15 @@ def cenotetaker3():
                                 hallmark genes.')
     optional_args.add_argument("-db", "--virus_domain_db", dest="HALL_LIST", type=str, choices=['virion', 'rdrp', 'dnarep'],
                                 default=['virion', 'rdrp'], nargs="+",
-                            help='default: virion -- \'standard\' database: all virus (DNA and RNA) hallmark genes \
-                                (i.e. genes with known function as virion structural, packaging, replication, or maturation \
-                                proteins specifically encoded by virus genomes) with low false discovery rate. \'virion\' \
-                                database: subset of \'standard\', hallmark genes encoding virion structural proteins, packaging \
+                            help='default: virion rdrp -- Hits to which domain types should count as hallmark genes?\
+                                \'virion\' database: genes encoding virion structural proteins, packaging \
                                 proteins, or capsid maturation proteins (DNA and RNA genomes) with LOWEST false discovery \
-                                rate. \'rna_virus\' database: For RNA virus hallmarks only. Includes RdRp and capsid genes \
-                                of RNA viruses. Low false discovery rate.')
+                                rate. \'rdrp\' database: For RNA virus-derived RNA-dependent RNA polymerase. \
+                                \'dnarep\' database: replication genes of DNA viruses. mostly useful for small \
+                                DNA viruses, e.g. CRESS viruses')
     optional_args.add_argument("--lin_minimum_hallmark_genes", dest="LIN_MINIMUM_DOMAINS", type=int, default='1', 
                             help='Default: 1 -- Number of detected viral hallmark genes on a non-circular contig to be \
-                                considered viral and recieve full annotation. WARNING: Only choose \'0\' if you have \
-                                prefiltered the contig file to only contain putative viral contigs (using another \
-                                method such as VirSorter or DeepVirFinder), or you are very confident you have \
-                                physically enriched for virus particles very well (you might check with ViromeQC). Otherwise, \
-                                the duration of the run will be extended many many times over, largely annotating \
-                                non-viral contigs, which is not what Cenote-Taker 3 is meant for. For unenriched samples,\
+                                considered viral and recieve full annotation. \
                                 \'2\' might be more suitable, yielding a false positive rate near 0. ')
     optional_args.add_argument("--circ_minimum_hallmark_genes", dest="CIRC_MINIMUM_DOMAINS", type=int, default='1', 
                             help='Default:1 -- Number of detected viral hallmark genes on a circular contig to be \

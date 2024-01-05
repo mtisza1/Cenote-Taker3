@@ -94,32 +94,32 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
         nameq = seq_record.id.split("@")[0]
         chunkq = seq_record.id.split("@")[1]
         try:
-            organism = tax_call_df.query("contig == @nameq & chunk_name == @chunkq")['taxon'].agg(pd.Series.mode)[0]
+            organism = tax_call_df.query("contig == @nameq & chunk_name == @chunkq")['taxon'].mode()[0]
         except:
             organism = "unclassified virus"
 
         try:
-            lineage = tax_call_df.query("contig == @nameq & chunk_name == @chunkq")['taxonomy_hierarchy'].agg(pd.Series.mode)[0]
+            lineage = tax_call_df.query("contig == @nameq & chunk_name == @chunkq")['taxonomy_hierarchy'].mode()[0]
         except:
             lineage = "no lineage"
 
-        gcode = gcode_df.query("contig == @nameq")['gcode'].agg(pd.Series.mode)[0]
+        gcode = gcode_df.query("contig == @nameq")['gcode'].mode()[0]
 
         topology = "linear"
     else:
         try:
-            organism = tax_call_df.query("contig == @seq_record.id")['taxon'].agg(pd.Series.mode)[0]
+            organism = tax_call_df.query("contig == @seq_record.id")['taxon'].mode()[0]
         except:
             organism = "unclassified virus"
 
         try:
-            lineage = tax_call_df.query("contig == @seq_record.id")['taxonomy_hierarchy'].agg(pd.Series.mode)[0]
+            lineage = tax_call_df.query("contig == @seq_record.id")['taxonomy_hierarchy'].mode()[0]
         except:
             lineage = "no lineage"
 
-        gcode = gcode_df.query("contig == @seq_record.id")['gcode'].agg(pd.Series.mode)[0]
+        gcode = gcode_df.query("contig == @seq_record.id")['gcode'].mode()[0]
 
-        top_str = repeat_df.query("contig == @seq_record.id")['dtr_seq'].agg(pd.Series.mode)
+        top_str = repeat_df.query("contig == @seq_record.id")['dtr_seq'].mode()
 
         if not top_str.empty:
             topology = "circular"

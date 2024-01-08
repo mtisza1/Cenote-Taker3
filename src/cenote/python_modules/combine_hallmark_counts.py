@@ -33,6 +33,8 @@ out_dir = sys.argv[6]
 
 names_file = sys.argv[7]
 
+
+
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
     
@@ -124,7 +126,8 @@ for hit_t in [virion_hits_dt, rep_hits_dt, rdrp_hits_dt]:
 try:
     full_hits_dt = pd.concat(df_list, ignore_index=True)
 except:
-    print("couldn't make full hits list")
+    print(f"{os.path.basename(__file__)}: couldn't make full hits list. no hallmark genes detected.")
+    sys.exit()
 
 hm_contigs_hits_dt = pd.merge(contigs_w_min_hall, full_hits_dt, on = 'contig', how = 'left')
 
@@ -136,4 +139,5 @@ if not hm_contigs_hits_l.empty:
 
     hm_contigs_hits_l.to_csv(hallmark_list_file, sep = "\t", index = False, header = False)
 else:
-    print("no hallmark genes list")
+    print(f"{os.path.basename(__file__)}: no hallmark genes list")
+    sys.exit()

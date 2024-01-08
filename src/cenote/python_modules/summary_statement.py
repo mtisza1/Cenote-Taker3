@@ -42,14 +42,14 @@ pc = '\033[35m'
 endc = '\033[0m'
 print('')
 if ann_mode == 'True':
-      print(f'>>> {pc}{num_seqs}{lc} contigs were annotated.')
+      print(f'>>> {pc}{num_seqs}{lc} contigs were annotated.{endc}')
       print(f'>>> {lc}In all, {pc}{nonhypo_genes / all_genes:.0%}{lc} of '
-            f'virus genes were annotated as non-hypothetical.{endc}')
+            f'virus genes were annotated with functional information.{endc}')
 else:
       print(f'>>> {pc}{num_seqs}{lc} contigs over {pc}{min_length}{lc} nt were '
             f'searched and {pc}{num_virus_contigs}{lc} viruses were detected and annotated.{endc}')
       print(f'>>> {lc}In all, {pc}{nonhypo_genes / all_genes:.0%}{lc} of '
-            f'virus genes were annotated as non-hypothetical.{endc}')
+            f'virus genes were annotated with functional information.{endc}')
       print(f'>>> {pc}{over_10kb}{lc} contig(s) over 10kb went through pruning module '
             f'and {pc}{pruned_seqs}{lc} were shortened by pruning.{endc}')
 print('')

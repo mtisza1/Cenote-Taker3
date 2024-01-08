@@ -58,7 +58,7 @@ def get_ct3_dbs():
 
     if not is_tool("mmseqs") :
         print("mmseqs is not found. Exiting.")
-        quit()
+        sys.exit()
 
     if str(args.HMM_DB) == "True":
         # https://zenodo.org/records/8436361/files/hmmscan_DBs.tgz
@@ -77,7 +77,7 @@ def get_ct3_dbs():
         print ("running mmseqs taxdb database update/install")
         if not is_tool("mmseqs") :
             print("mmseqs is not found. Exiting. Is conda environment activated?")
-            quit()
+            sys.exit()
         MMSEQS_outdir = os.path.join(str(args.C_DBS), "mmseqs_DBs")
         if not os.path.isdir(MMSEQS_outdir):
             os.makedirs(MMSEQS_outdir, exist_ok=True)
@@ -100,7 +100,7 @@ def get_ct3_dbs():
                         'https://zenodo.org/records/8436361/files/cddid_all.tbl'])
         if not is_tool("mmseqs") :
             print("mmseqs is not found. Exiting. Is conda environment activated?")
-            quit()
+            sys.exit()
         MMSEQS_outdir = os.path.join(str(args.C_DBS), "mmseqs_DBs")
         if not os.path.isdir(MMSEQS_outdir):
             os.makedirs(MMSEQS_outdir, exist_ok=True)

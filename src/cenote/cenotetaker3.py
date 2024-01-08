@@ -280,7 +280,7 @@ def cenotetaker3():
             logger.warning(f"database directory is not found at {str(args.C_DBS)}. Exiting.")
             logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
                            and setting CENOTE_DBS environmental variable")
-            quit()
+            sys.exit()
         ## checking hmm dir
         if not os.path.isdir(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))):
             logger.warning(f"hmm db directory is not found at")
@@ -298,7 +298,7 @@ def cenotetaker3():
                                            for installing databases\
                                            and setting CENOTE_DBS environmental variable")
                             logger.warning("Exiting.")
-                            quit()
+                            sys.exit()
         ## checking hmm files
         hmm_flist = ['Virion_HMMs.h3m', 'DNA_rep_HMMs.h3m', 'RDRP_HMMs.h3m', 
                      'Useful_Annotation_HMMs.h3m', 'phrogs_for_ct.h3m']
@@ -309,7 +309,7 @@ def cenotetaker3():
                 logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
                             and setting CENOTE_DBS environmental variable")
                 logger.warning("Exiting.")
-                quit()
+                sys.exit()
         ## checking mmseqs tax db
         if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'refseq_virus_prot_taxDB')):
             logger.warning(f"mmseqs tax db file is not found at")
@@ -317,7 +317,7 @@ def cenotetaker3():
             logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
                            and setting CENOTE_DBS environmental variable")
             logger.warning("Exiting.")
-            quit()
+            sys.exit()
         ## checking mmseqs cdd db
         if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'CDD')):
             logger.warning(f"mmseqs CDD db file is not found at")
@@ -325,7 +325,7 @@ def cenotetaker3():
             logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
                            and setting CENOTE_DBS environmental variable")
             logger.warning("Exiting.")
-            quit()
+            sys.exit()
          ## checking virus domain list file
         if not os.path.isfile(os.path.join(str(args.C_DBS), 'viral_cdds_and_pfams_191028.txt')):
             logger.warning(f"virus domain list file is not found at")
@@ -333,7 +333,7 @@ def cenotetaker3():
             logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
                            and setting CENOTE_DBS environmental variable")
             logger.warning("Exiting.")
-            quit()
+            sys.exit()
 
     check_ct3_dbs()
 
@@ -348,7 +348,7 @@ def cenotetaker3():
     for tool in tool_dep_list:
         if not is_tool(tool):
             logger.warning(f"{tool} is not found. Exiting.")
-            quit()   
+            sys.exit()   
 
 
     reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
@@ -359,7 +359,7 @@ def cenotetaker3():
     for pydep in python_dep_list:
         if pydep not in installed_packages:
             logger.warning(f"{pydep} not found in installed python packages. Exiting.")
-            quit() 
+            sys.exit() 
 
     ## check run_title suitability
     if re.search(r'^[a-zA-Z0-9_]+$', str(args.run_title)) and \
@@ -369,7 +369,7 @@ def cenotetaker3():
         logger.warning(f"{str(args.run_title)} is not a valid name for the run title ( -r argument)")
         logger.warning( "the run title needs to be only letters, numbers and underscores (_) and \
               18 characters or less. Exiting.")
-        quit()
+        sys.exit()
 
 
     #### define logging of subprocess (cenote_main.sh) ####

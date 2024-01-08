@@ -159,7 +159,7 @@ else
 fi
 
 
-### split contigs into equal parts for prodigal ORF calling
+### split contigs into equal parts for prodigal ORF calling, call ORFs
 #- input:
 #-- ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 #- output:

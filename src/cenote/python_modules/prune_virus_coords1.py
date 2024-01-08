@@ -179,6 +179,8 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     def left_cutoff(position, groupframe):
         calced_start =  int(position)
         lbisect_pos = bisect.bisect(list(groupframe['gene_start']), calced_start)
+        if lbisect_pos >= len(list(groupframe['gene_start'])):
+             lbisect_pos = len(list(groupframe['gene_start'])) - 1
         lchunk_cutoff = list(groupframe['gene_start'])[lbisect_pos]
         return lchunk_cutoff
 

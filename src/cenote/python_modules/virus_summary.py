@@ -92,7 +92,7 @@ for fsa in os.listdir(sequin_dir):
 
 if not finalseq_list:
     print("no files found for seqIO parse " + str(sequin_dir))
-    exit
+    sys.exit()
 
 
 desc_list = []
@@ -127,14 +127,14 @@ org_info_df['chunk_length'] = np.where(org_info_df['chunk_length'].isnull(),
                                        org_info_df['chunk_length'])
 
 ## make summary of virus seqs
-grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'dtr_seq', 'chunk_name', 
+grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'chunk_name', 
                      'input_name', 'taxon', 'taxonomy_hierarchy', 'taxon_level',
                      'avg_hallmark_AAI_to_ref', 'organism', 'gcode', 'ORFcaller'], dropna = False)
 
 summary_list = []
 for name, group in grouped_df:
-    if "Chunk" in str(name[3]):
-        outname = "@".join([name[0], name[3]])
+    if "Chunk" in str(name[2]):
+        outname = "@".join([name[0], name[2]])
     else:
         outname = name[0]
     gene_count = group['gene_name'].nunique()
@@ -150,15 +150,20 @@ for name, group in grouped_df:
     rdrp_hall_list = '|'.join(
         list(group.query("Evidence_source == 'rdrp_hall_hmm'")['evidence_description'])
         ).replace("-", " ")
+    if not group.dtr_seq.replace('', np.nan).isna().all():
+        
+        dtr_seqf = group['dtr_seq'].mode()[0]
+    else:
+        dtr_seqf = "None"
     
-    if all(c in "ATCG" for c in str(name[2])):
+    if all(c in "ATCG" for c in dtr_seqf):
         end_type = "DTR"
     else:
         end_type = "None"
         
     if gene_count >= 1:
-        summary_list.append([outname, name[4], name[9], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
-                             rdrp_hall_count, vir_hall_list, rep_hall_list, rdrp_hall_list, name[6], name[11]])
+        summary_list.append([outname, name[3], name[8], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
+                             rdrp_hall_count, vir_hall_list, rep_hall_list, rdrp_hall_list, name[5], name[10]])
 
 summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'virus_seq_length', 
                                                  'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',

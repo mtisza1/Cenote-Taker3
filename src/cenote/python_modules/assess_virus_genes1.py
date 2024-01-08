@@ -235,7 +235,22 @@ contig_gene_outfile = os.path.join(out_dir, "contig_gene_annotation_summary.tsv"
 contig_gene_df.to_csv(contig_gene_outfile, sep = "\t", index = False)
 
 ## save hallmark genes in bed format
-hallmark_df = contig_gene_df.query("Evidence_source == 'hallmark_hmm'")
+if "virion" in str(hall_type):
+    virion_str = "Evidence_source == 'hallmark_hmm'"
+else:
+    virion_str = ""
+if "rdrp" in str(hall_type):
+    rdrp_str = "Evidence_source == 'rdrp_hall_hmm'"
+else:
+    rdrp_str = ""
+if "dnarep" in str(hall_type):
+    rep_str = "Evidence_source == 'rep_hall_hmm'"
+else:
+        rep_str = ""
+
+query_str = ' | '.join(filter(None, [virion_str, rdrp_str, rep_str]))
+
+hallmark_df = contig_gene_df.query(str(query_str))
 hallmark_df = hallmark_df[['contig', 'gene_start', 'gene_stop']]
 
 hallmark_gene_outfile = os.path.join(out_dir, "contig_gene_annotation_summary.hallmarks.bed")
@@ -246,7 +261,6 @@ hallmark_df.to_csv(hallmark_gene_outfile, sep = "\t", index = False, header = Fa
 #try:
 grouped_df = contig_gene_df.query("contig_length >= 10000")\
     .query("dtr_seq.isnull()").groupby('contig')
-
 
 
 try:

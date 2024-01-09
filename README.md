@@ -26,7 +26,7 @@ Works on your laptop or HPC (compatible with MacOS and Linux)
 
 Image of example genome map:
 
-<img src='images/genome_map1.png' width='100'>
+<img src='images/genome_map1.png' width='250'>
 
 ### Use Cases
 
@@ -74,7 +74,7 @@ conda 23.7.4
 
 `pip install .`
 
-*You should be able to type `cenotetaker3` and 'get_ct3_dbs' in terminal to bring up help menu now*
+*You should be able to type `cenotetaker3` and `get_ct3_dbs` in terminal to bring up help menu now*
 
 5)  Change to a directory where you'd like to install databases and run database script, specify DB directory with `-o`.
 

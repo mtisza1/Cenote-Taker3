@@ -144,27 +144,27 @@ cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T --reads my_reads/*
 
 ## Output Files
 
-``` {style="color: blue"}
+<pre>
 {run_title}/
-|   {run_title}_virus_summary.tsv   <- main summary file for each virus
-|   {run_title}_virus_sequences.fna   <- all virus genome seqs
-|   {run_title}_virus_AA.faa   <- all virus AA seqs
-|   {run_title}_prune_summary.tsv   <- summary of pruning of each sequence
-|   final_genes_to_contigs_annotation_summary.tsv   <- annotation info, all genes
-|   run_arguments.txt   <- arguments used in this run
-│   {run_title}_cenotetaker.log   <- main log file
+|   {run_title}_virus_summary.tsv   <b><- main summary file for each virus</b>
+|   {run_title}_virus_sequences.fna   <b><- all virus genome seqs</b>
+|   {run_title}_virus_AA.faa   <b><- all virus AA seqs</b>
+|   {run_title}_prune_summary.tsv   <b><- summary of pruning of each sequence</b>
+|   final_genes_to_contigs_annotation_summary.tsv   <b><- annotation info, all genes</b>
+|   run_arguments.txt   <- <b>arguments used in this run</b>
+│   {run_title}_cenotetaker.log   <b><- main log file</b>
 │
 └───sequin_and_genome_maps/
-│   │   {run_title}*gbf   <- genome maps
-│   │   {run_title}*fsa   <- genome sequence
-│   │   {run_title}*gtf   <- feature table gtf format
-│   │   {run_title}*tbl   <- feature table sequin format
-│   │   {run_title}*sqn   <- non-human-readable sequin file for GenBank sub
-│   │   {run_title}*cmt   <- sequin comment file
+│   │   {run_title}*gbf   <b><- genome maps</b>
+│   │   {run_title}*fsa   <b><- genome sequence</b>
+│   │   {run_title}*gtf   <b><- feature table gtf format</b>
+│   │   {run_title}*tbl   <b><- feature table sequin format</b>
+│   │   {run_title}*sqn   <b><- non-human-readable sequin file for GenBank sub</b>
+│   │   {run_title}*cmt   <b><- sequin comment file</b>
 │
 └───ct_processing/
-│   │   --- many intermediate files ---
-```
+│   │   <b>--- many intermediate files ---</b>
+</pre>
 
 ### Notes
 

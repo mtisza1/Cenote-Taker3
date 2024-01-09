@@ -22,11 +22,25 @@ Works on your laptop or HPC (compatible with MacOS and Linux)
 
 ---e) tabular (.tsv) and interactive genome map (.gbf) outputs
 
-**Also, `Cenote-Taker 3` is very fast, many many times faster than `Cenote-Taker 2`, and faster than comparable annotation using `pharokka` (in my hands)**
+**Also, `Cenote-Taker 3` is very fast, many many times faster than `Cenote-Taker 2` for large datasets, and faster than comparable annotation using `pharokka` with more function annotation for virus genes (in my hands)**
 
 Image of example genome map:
 
-![Map](images/genome_map1.png | width=100)
+<img src='images/genome_map1.png' width='100'>
+
+### Use Cases
+
+1) Discovering virus contigs in metagenomic data
+
+2) Annotating virus sequences without highly similar well-annotated reference
+
+3) Finding prophages (or proviruses) in microbial genomes
+
+### Not-Use Cases
+
+1) Not for read-level classification of known viruses (see [Marker-MAGu](https://github.com/cmmr/Marker-MAGu) or [EsViritu](https://github.com/cmmr/EsViritu) for this task)
+
+2) Not ideal for annotating virus genomes that are highly similar to known references (e.g. phage lambda with a few mutations)
 
 ## Schematic
 
@@ -34,7 +48,7 @@ Image of example genome map:
 
 ## Installation Instructions
 
-*A bioconda package is forthcoming, but this is considered a beta build, so I'm holding off on that*
+*A bioconda package is forthcoming*
 
 **This should work on MacOS and Linux**
 
@@ -116,6 +130,12 @@ cenotetaker3 -c Cenote-Taker3/test_data/testcontigs_DNA_ct2.fasta -r test_ct3 -p
 
 ```         
 cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T
+```
+
+### Recommended settings for microbial genomes
+
+```         
+cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T --lin_minimum_hallmark_genes 2
 ```
 
 ### Discover and Annotate, Force `prodigal` (prodigal-gv is default)

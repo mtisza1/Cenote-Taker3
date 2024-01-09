@@ -42,19 +42,16 @@ if not os.path.isdir(out_dir):
 try:
     virion_dt = pd.read_csv(virion_count_file, sep = "\t", names=['contig', 'virion_hit_count'], skiprows = 1)
 except:
-    print("no virion hmm tsv")
     virion_dt  = pd.DataFrame(columns = ['contig', 'virion_hit_count'])
 
 try:
     rep_dt = pd.read_csv(rep_count_file, sep = "\t", names=['contig', 'rep_hit_count'], skiprows = 1)
 except:
-    print("no rep hmm tsv")
     rep_dt  = pd.DataFrame(columns = ['contig', 'rep_hit_count'])
 
 try:
     rdrp_dt = pd.read_csv(rdrp_count_file, sep = "\t", names=['contig', 'rdrp_hit_count'], skiprows = 1)
 except:
-    print("no rdrp hmm tsv")
     rdrp_dt  = pd.DataFrame(columns = ['contig', 'rdrp_hit_count'])
 
 
@@ -100,8 +97,8 @@ if not contigs_w_min_hall.empty:
     merge_dt.to_csv(halls_orig_contigs_file, sep = "\t", index = False)   
     
 else:
-    print(f"no contigs with at least {hallmark_count} {hallmark_type} hallmark genes found")
-
+    print(f"{os.path.basename(__file__)}: no contigs with at least {hallmark_count} hallmark genes of type(s) ({hallmark_type}) found")
+    sys.exit()
 
 try:
     virion_hits_dt = pd.read_csv(virion_tsv_file, sep = "\t")

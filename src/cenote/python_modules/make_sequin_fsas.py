@@ -77,7 +77,8 @@ for df in phan_df, prod_df:
 try:
     gcode_df = pd.concat(gcode_list, ignore_index=True)
 except:
-    print("nope")
+    print(f"{os.path.basename(__file__)}: genetic code table not found")
+    gcode_df = pd.DataFrame()
 
 # repeat and length
 repeat_df = pd.read_csv(repeat_file, sep = "\t")
@@ -102,8 +103,10 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
             lineage = tax_call_df.query("contig == @nameq & chunk_name == @chunkq")['taxonomy_hierarchy'].mode()[0]
         except:
             lineage = "no lineage"
-
-        gcode = gcode_df.query("contig == @nameq")['gcode'].mode()[0]
+        if not gcode_df.empty:
+            gcode = gcode_df.query("contig == @nameq")['gcode'].mode()[0]
+        else:
+            gcode = 1
 
         topology = "linear"
     else:
@@ -117,8 +120,11 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
         except:
             lineage = "no lineage"
 
-        gcode = gcode_df.query("contig == @seq_record.id")['gcode'].mode()[0]
-
+        if not gcode_df.empty:
+            gcode = gcode_df.query("contig == @seq_record.id")['gcode'].mode()[0]
+        else:
+            gcode = 1
+            
         top_str = repeat_df.query("contig == @seq_record.id")['dtr_seq'].mode()
 
         if not top_str.empty:

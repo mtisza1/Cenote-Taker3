@@ -55,7 +55,7 @@ if os.path.isfile(mmseqs2_tax_table) and os.path.getsize(mmseqs2_tax_table) > 0:
 
     ORFcaller_majority = merge_tax_df.groupby("contig")['ORFcaller'].agg(pd.Series.mode).to_frame()
 else:
-    print("mmseqs2 hit table was empty, setting ORF caller to prodigal for all input seqs.")
+    print(f"{os.path.basename(__file__)}: mmseqs2 hit table was empty, setting ORF caller to prodigal for all input seqs.")
 
     length_df = pd.read_csv(repeat_table, sep = "\t")[['contig']]
 

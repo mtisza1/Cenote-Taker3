@@ -48,7 +48,7 @@ for splitAA in os.listdir(input_dir):
             splitAA_list.append(f)
 
 if not splitAA_list:
-    print("no files found for pyhmmer in " + str(input_dir))
+    print(f"{os.path.basename(__file__)}: no files found for pyhmmer in " + str(input_dir))
     exit
 
 ## get lengths of each hmm

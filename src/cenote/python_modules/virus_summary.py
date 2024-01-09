@@ -37,7 +37,8 @@ try:
     tax_df = pd.read_csv(tax_table, sep = "\t")
 
 except:
-    print("couldn't load files for summary")
+    print(f"{os.path.basename(__file__)}: couldn't load files for summary")
+    sys.exit()
 
 # phanotate and prodigal
 if os.path.isfile(phan_file) and os.path.getsize(phan_file) > 0:
@@ -91,7 +92,7 @@ for fsa in os.listdir(sequin_dir):
             finalseq_list.append(f)
 
 if not finalseq_list:
-    print("no files found for seqIO parse " + str(sequin_dir))
+    print(f"{os.path.basename(__file__)}: no files found for seqIO parse " + str(sequin_dir))
     sys.exit()
 
 
@@ -110,7 +111,7 @@ for seq_file in finalseq_list:
         #gcode = re.search(r'\[gcode=(.*?)\]', fields[1]).group(1)
         desc_list.append([contig, chunkq, organism])
     except:
-        print("except")
+        print(f"{os.path.basename(__file__)}: seq record info parse failed.")
 
 desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
 

@@ -589,7 +589,8 @@ if [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
 
 		for PHAN_TSV in $SPLIT_PHAN_TABS; do
 			#echo $PHAN_TSV
-			awk '{OFS=FS="\t"}{ if ($1 !~ /^#/) { if ($2>$1) {print $4, ($1-1), $2, $4"_"NR, $5, $3} else {print $4, ($2-1), $1, $4"_"NR, $5, $3}}}' ${PHAN_TSV} > ${PHAN_TSV%.phan_genes.bad_fmt.tsv}.phan_genes.bed
+			awk '{OFS=FS="\t"}{ if ($1 !~ /^#/) { if ($2>$1) {print $4, ($1-1), $2, $4"_"NR, $5, $3} else {print $4, ($2-1), $1, $4"_"NR, $5, $3}}}'\
+			  ${PHAN_TSV} > ${PHAN_TSV%.phan_genes.bad_fmt.tsv}.phan_genes.bed
 			rm ${PHAN_TSV}
 		done
 
@@ -624,8 +625,6 @@ if [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
 
 	fi
 
-else
-	echo "no phanotate list. OK."
 fi
 
 
@@ -763,7 +762,8 @@ if [ -n "$SECOND_REORF_AAs" ] ; then
 		tail -n+2 ${TEMP_DIR}/comm_reORF_pyhmmer/pyhmmer_report_AAs.tsv | cut -f1 > ${TEMP_DIR}/comm_reORF_pyhmmer/hit_this_round1.txt
 
 		echo "$SECOND_REORF_AAs" | while read AA ; do
-			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/comm_reORF_pyhmmer/hit_this_round1.txt $AA >> ${TEMP_DIR}/reORF_mmseqs_combined/all_AA_seqs.no2.faa
+			seqkit grep --quiet -j $CPU -v -f ${TEMP_DIR}/comm_reORF_pyhmmer/hit_this_round1.txt\
+			  $AA >> ${TEMP_DIR}/reORF_mmseqs_combined/all_AA_seqs.no2.faa
 		done
 
 	else

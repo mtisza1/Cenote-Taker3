@@ -18,8 +18,8 @@ for hhrout in os.listdir(input_dir):
             hhrout_list.append(f)
 
 if not hhrout_list:
-    print("no hhpred result files found in " + str(input_dir))
-    exit
+    print(f"{os.path.basename(__file__)}: no hhpred result files found in " + str(input_dir))
+    sys.exit()
 
 rows = []
 

@@ -71,7 +71,6 @@ try:
     phan_gene_df = phan_gene_df.drop(['gene_score', 'gene_bstart', 'gene_bstop'], axis = 1)
 
 except:
-    print("no phanotate tables")
     phan_gene_df = pd.DataFrame()
 
 ## look for prodigal gene tables
@@ -99,19 +98,17 @@ try:
     prod_gene_df = prod_gene_df[["contig", "gene_start", "gene_stop", "gene_name", "gene_orient"]]
 
 except:
-    print("no prodigal tables")
     prod_gene_df = pd.DataFrame()
 
 ## combine gene tables
 if not phan_gene_df.empty and not prod_gene_df.empty:
-    print("both")
     both_list = [phan_gene_df, prod_gene_df]
     just_gene_df = pd.concat(both_list, ignore_index=True)
+
 elif not phan_gene_df.empty:
-    print("phan")
     just_gene_df = phan_gene_df
+
 elif not prod_gene_df.empty:
-    print("prod")
     just_gene_df = prod_gene_df
 
 ## get table with lengths and repeats for each hallmark contig
@@ -120,15 +117,15 @@ try:
 
     length_df = length_df.rename(columns={"out_length_contig": "contig_length"})
 except:
-    print("nope")
-    exit
+    print(f"{os.path.basename(__file__)}: repeat table not found.")
+    sys.exit()
 
 ## combine gene and contig tables
 try:
     basal_df = just_gene_df.merge(length_df, on = "contig", how = "left")
 except:
-    print("nope")
-    exit
+    print(f"{os.path.basename(__file__)}: repeat table empty.")
+    sys.exit()
 
 ## load and parse table for first pyhmmer search (hallmarks)\
 
@@ -156,7 +153,6 @@ def parse_pyhmmer_table(tab_file, evidence, categ):
         ppyh_df['vscore_category'] = str(categ)
 
     except:
-        print("nope")
         ppyh_df = pd.DataFrame()
     return ppyh_df
 
@@ -178,7 +174,6 @@ try:
 
     cdd_df['Evidence_source'] = 'mmseqs_cdd'
 except:
-    print("no CDD")
     cdd_df = pd.DataFrame()
 
 
@@ -188,7 +183,7 @@ try:
 
     virlist_df['vscore_category'] = 'common_virus'
 except:
-    print("no virlist")
+    print(f"{os.path.basename(__file__)}: no viral cdds list file. expecting {viral_cdds_list}.")
 
 ## combine mmseqs CDD search table and common virus gene list
 try:
@@ -202,7 +197,7 @@ try:
     comb_cdd_df['vscore_category'] = np.where(comb_cdd_df['vscore_category'].isna(), 'nonviral_gene',
                                             comb_cdd_df['vscore_category'])
 except:
-    print("no CDD mmseqs table")
+    comb_cdd_df = pd.DataFrame()
 
 ## combine pyhmmer and mmseqs tables with contig/gene table for all gene annotations
 df_list = [virion_ppyh_df, comm_pyh_df, rep_pyh_df, rdrp_pyh_df, comb_cdd_df]
@@ -227,7 +222,7 @@ try:
                                                       contig_gene_df['evidence_description'])
 
 except:
-    print("nope")
+    print(f"{os.path.basename(__file__)}: cannot merge annotation tables")
 
 ## save annotation table to file
 contig_gene_outfile = os.path.join(out_dir, "contig_gene_annotation_summary.tsv")
@@ -259,20 +254,27 @@ hallmark_df.to_csv(hallmark_gene_outfile, sep = "\t", index = False, header = Fa
 
 
 #try:
-grouped_df = contig_gene_df.query("contig_length >= 10000")\
-    .query("dtr_seq.isnull()").groupby('contig')
+long_df = contig_gene_df.query("contig_length >= 10_000").query("dtr_seq.isnull()")
 
+if not long_df.empty:
+    grouped_df = long_df.groupby('contig')
+    try:
+        if PROPHAGE == "True":
+            for name, group in grouped_df:
 
-try:
-    if PROPHAGE == "True":
-        for name, group in grouped_df:
+                prune_chunks(name, group, fig_out_dir, hall_type)
 
-            prune_chunks(name, group, fig_out_dir, hall_type)
-    else:
-        print("--prune_prophage set to False, not pruning")
-    
-except:
-    print("No non-DTR virus contigs >= 10,000 nt. So pruning will not happen")
+        else:
+            print("--prune_prophage set to False, not pruning")
+        
+    except:
+        
 
+        os.mkdir(os.path.join(out_dir, "prune_figures"))
+
+else:
+    print(f"{os.path.basename(__file__)}: No non-DTR virus contigs >= 10,000 nt. So pruning will not happen")
     os.mkdir(os.path.join(out_dir, "prune_figures"))
+
+
 

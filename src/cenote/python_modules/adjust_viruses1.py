@@ -29,7 +29,7 @@ try:
     chunk_coord_df = pd.concat(df_from_each_coord, ignore_index=True)
 
 except:
-    print("no chunk coords")
+    print(f"{os.path.basename(__file__)}: no chunk coords for virus contigs")
 
 adjusted_gene_df = pd.DataFrame()
 

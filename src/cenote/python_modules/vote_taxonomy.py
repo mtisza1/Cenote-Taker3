@@ -66,32 +66,32 @@ def taxon_decider(name, group, taxonomy_list):
     group_count = len(group.index)
 
     # modal/most common genus name
-    g_mode = group['genus'].agg(pd.Series.mode)
+    g_mode = group['genus'].mode()
 
     g_mode_occur = len(group.query("genus == @g_mode[0]").index)
 
     g_mean_AAI = group.query("genus == @g_mode[0]")['pident'].mean()
 
     #
-    f_mode = group['family'].agg(pd.Series.mode)
+    f_mode = group['family'].mode()
 
     f_mode_occur = len(group.query("family == @f_mode[0]").index)
 
     f_mean_AAI = group.query("family == @f_mode[0]")['pident'].mean()    
     #
-    o_mode = group['order'].agg(pd.Series.mode)
+    o_mode = group['order'].mode()
 
     o_mode_occur = len(group.query("order == @o_mode[0]").index)
 
     o_mean_AAI = group.query("order == @o_mode[0]")['pident'].mean()  
     #
-    c_mode = group['taxclass'].agg(pd.Series.mode)
+    c_mode = group['taxclass'].mode()
 
     c_mode_occur = len(group.query("taxclass == @c_mode[0]").index)
 
     c_mean_AAI = group.query("taxclass == @c_mode[0]")['pident'].mean()  
     #
-    p_mode = group['phylum'].agg(pd.Series.mode)
+    p_mode = group['phylum'].mode()
 
     p_mode_occur = len(group.query("phylum == @p_mode[0]").index)
 

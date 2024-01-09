@@ -126,7 +126,7 @@ for df in phrogs_pyh_df, hhpred_df:
 try:
     extra_an_df = pd.concat(extra_an_list, ignore_index=True)
 except:
-    print("no annotations taken from phrogs or hhsuite")
+    #print("no annotations taken from phrogs or hhsuite")
     extra_an_df = pd.DataFrame()
 
 ## combine gene+contig table and extra annotation table, replacing gene annotations

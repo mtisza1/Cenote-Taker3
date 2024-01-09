@@ -26,7 +26,7 @@ Works on your laptop or HPC (compatible with MacOS and Linux)
 
 Image of example genome map:
 
-![Map](images/genome_map1.png)
+![Map](images/genome_map1.png | width=100)
 
 ## Schematic
 
@@ -146,21 +146,21 @@ cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T --reads my_reads/*
 
 <pre>
 {run_title}/
-|   {run_title}_virus_summary.tsv   <b><- main summary file for each virus</b>
-|   {run_title}_virus_sequences.fna   <b><- all virus genome seqs</b>
-|   {run_title}_virus_AA.faa   <b><- all virus AA seqs</b>
-|   {run_title}_prune_summary.tsv   <b><- summary of pruning of each sequence</b>
-|   final_genes_to_contigs_annotation_summary.tsv   <b><- annotation info, all genes</b>
-|   run_arguments.txt   <- <b>arguments used in this run</b>
-│   {run_title}_cenotetaker.log   <b><- main log file</b>
+|   {run_title}_virus_summary.tsv                 <b><- main summary file for each virus</b>
+|   {run_title}_virus_sequences.fna               <b><- all virus genome seqs</b>
+|   {run_title}_virus_AA.faa                      <b><- all virus AA seqs</b>
+|   {run_title}_prune_summary.tsv                 <b><- summary of pruning of each sequence</b>
+|   final_genes_to_contigs_annotation_summary.tsv <b><- annotation info, all genes</b>
+|   run_arguments.txt                             <b><- arguments used in this run</b>
+│   {run_title}_cenotetaker.log                   <b><- main log file</b>
 │
 └───sequin_and_genome_maps/
-│   │   {run_title}*gbf   <b><- genome maps</b>
-│   │   {run_title}*fsa   <b><- genome sequence</b>
-│   │   {run_title}*gtf   <b><- feature table gtf format</b>
-│   │   {run_title}*tbl   <b><- feature table sequin format</b>
-│   │   {run_title}*sqn   <b><- non-human-readable sequin file for GenBank sub</b>
-│   │   {run_title}*cmt   <b><- sequin comment file</b>
+│   │   {run_title}*gbf                           <b><- genome maps</b>
+│   │   {run_title}*fsa                           <b><- genome sequence</b>
+│   │   {run_title}*gtf                           <b><- feature table gtf format</b>
+│   │   {run_title}*tbl                           <b><- feature table sequin format</b>
+│   │   {run_title}*sqn                           <b><- non-human-readable sequin file for GenBank sub</b>
+│   │   {run_title}*cmt                           <b><- sequin comment file</b>
 │
 └───ct_processing/
 │   │   <b>--- many intermediate files ---</b>

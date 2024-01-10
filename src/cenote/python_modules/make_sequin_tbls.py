@@ -14,7 +14,9 @@ tRNA_table = sys.argv[2]
 
 phrogs_table = sys.argv[3]
 
-out_dir = sys.argv[4]
+hhpred_table = sys.argv[4]
+
+out_dir = sys.argv[5]
 
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
@@ -97,13 +99,39 @@ if os.path.isfile(phrogs_table) and os.path.getsize(phrogs_table) > 0:
     phrogs_pyh_df['Evidence_source'] = 'phrogs_hmm'
 
 else:
-    print("nope")
+    #print("nope")
     phrogs_pyh_df = pd.DataFrame()
 
+## check for hhpred table and parse
+if os.path.isfile(hhpred_table) and os.path.getsize(hhpred_table) > 0:
+    hhpred_df = pd.read_csv(hhpred_table, sep = "\t")
 
-## combine gene+contig table and phrogs table, replacing gene annotations
-if not phrogs_pyh_df.empty:
-    merged_df = pd.merge(more_feature_df, phrogs_pyh_df, on = "gene_name", how = "left",
+    hhpred_df = hhpred_df[['gene_name', 'evidence_acession', 'evidence_description']]
+
+    hhpred_df['Evidence_source'] = 'hhsuite_tools'
+
+else:
+    #print("nope")
+    hhpred_df = pd.DataFrame()
+
+
+## combine phrogs and hhpred tables
+extra_an_list = []
+
+for df in phrogs_pyh_df, hhpred_df:
+    if not df.empty:
+        extra_an_list.append(df)
+
+
+try:
+    extra_an_df = pd.concat(extra_an_list, ignore_index=True)
+except:
+    #print("no annotations taken from phrogs or hhsuite")
+    extra_an_df = pd.DataFrame()
+
+## combine gene+contig table and extra annotation table, replacing gene annotations
+if not extra_an_df.empty:
+    merged_df = pd.merge(more_feature_df, extra_an_df, on = "gene_name", how = "left",
                          suffixes = ("", "_y"))
 
     merged_df['evidence_acession'] = np.where(merged_df['evidence_acession_y']
@@ -184,7 +212,8 @@ for name, seq_group in chunk_grouped_df:
         first_c = tbl_first_second(row['gene_start'], row['gene_stop'], row['gene_orient'])[0]
         second_c = tbl_first_second(row['gene_start'], row['gene_stop'], row['gene_orient'])[1]
 
-        if row['Evidence_source'] in {'hallmark_hmm', 'rep_hall_hmm', 'common_virus_hmm', 'phrogs_hmm'}: #my hmms
+        if row['Evidence_source'] in {'hallmark_hmm', 'rep_hall_hmm', 'rdrp_hall_hmm', 
+                                      'common_virus_hmm', 'phrogs_hmm', 'hhsuite_tools'}: #my hmms
             typeq = "CDS"
             tagstr = ("protein_id" + "\tlcl|" + row['gene_name'])
             productstr = re.sub("-", " ", row['evidence_description'])

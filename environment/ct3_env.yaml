@@ -1,4 +1,4 @@
-name: ct3_beta
+name: ct3_env
 channels:
   - defaults
   - bioconda
@@ -7,15 +7,18 @@ dependencies:
   - python>=3.10
   - seqkit
   - prodigal
-  - hmmer
+  - pyrodigal-gv>=0.3.1
+  - hhsuite
   - mmseqs2
-  - bioawk
-  - taxonkit
   - trnascan-se
   - minimap2
   - tbl2asn-forever
-  - snakemake
   - biopython
   - bedtools
   - phanotate
   - pyhmmer
+  - findutils
+  - coreutils
+  - sed
+  - grep
+  - samtools

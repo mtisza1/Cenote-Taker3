@@ -10,17 +10,29 @@ import pandas as pd
 
 fasta_file = sys.argv[1]
 
-out_dir = sys.argv[2]
+orig_hallmark_tab = sys.argv[2]
+
+length_circ = sys.argv[3]
+
+length_lin = sys.argv[4]
+
+hall_circ = sys.argv[5]
+
+hall_lin = sys.argv[6]
+
+out_dir = sys.argv[7]
+
+wrap = sys.argv[8]
+
 
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
-output_file = os.path.join(out_dir, "trimmed_TRs_hallmark_contigs.fasta")
+output_allf = os.path.join(out_dir, "trimmed_TRs_hallmark_contigs.fasta")
 
-if os.path.isfile(output_file):
-    os.remove(output_file)
+if os.path.isfile(output_allf):
+    os.remove(output_allf)
 
-wrap = sys.argv[3]
 
 ## The following functions are copied wholesale from CheckV as I find them to be fast and correct
 ## link https://bitbucket.org/berkeleylab/checkv/src/master/checkv/modules/complete_genomes.py
@@ -76,19 +88,43 @@ for seq_record in SeqIO.parse(fasta_file, "fasta"):
         itr_seq = "NA"
 
     if not dtr_seq == "NA" and wrap.lower() == "true":
-        print(f">{seq_record.id}", file = open(output_file, "a"))
-        print(seq_record.seq[:-len(dtr_seq)], file = open(output_file, "a"))
+        print(f">{seq_record.id}", file = open(output_allf, "a"))
+        print(seq_record.seq[:-len(dtr_seq)], file = open(output_allf, "a"))
 
         terminal_r_list.append([seq_record.id, len(seq_record.seq), len(seq_record.seq[:-len(dtr_seq)]), dtr_seq, itr_seq])
     else:
-        print(f">{seq_record.id}", file = open(output_file, "a"))
-        print(seq_record.seq, file = open(output_file, "a"))
+        print(f">{seq_record.id}", file = open(output_allf, "a"))
+        print(seq_record.seq, file = open(output_allf, "a"))
 
         terminal_r_list.append([seq_record.id, len(seq_record.seq), len(seq_record.seq), dtr_seq, itr_seq])
 
-terminal_df = pd.DataFrame(terminal_r_list, columns=["contig", "in_length_contig", "out_length_contig", "dtr_seq", "itr_seq"])
+terminal_df = pd.DataFrame(terminal_r_list, columns=["contig", "in_length_contig", "out_length_contig", 
+                                                     "dtr_seq", "itr_seq"])
 
-output_table = os.path.join(out_dir, "hallmark_contigs_terminal_repeat_summary.tsv")
+all_table = os.path.join(out_dir, "hallmark_contigs_terminal_repeat_summary.tsv")
 
-terminal_df.to_csv(output_table,
+terminal_df.to_csv(all_table,
                         sep = "\t", index = False)
+
+
+hall_dt = pd.read_csv(orig_hallmark_tab, sep = "\t", header = 0)
+
+full_dt = pd.merge(hall_dt, terminal_df, on = 'contig')
+
+
+keep_dt = full_dt[(full_dt['dtr_seq'].notna() 
+        & (full_dt['total_hit_count'] >= int(hall_circ) ) 
+        & (full_dt['in_length_contig'] >= int(length_circ) )) 
+        | ((full_dt['total_hit_count'] >= int(hall_lin) )
+        & (full_dt['in_length_contig'] >= int(length_lin) ))][["contig", "in_length_contig", "out_length_contig", 
+                                                            "dtr_seq", "itr_seq"]]
+thresh_table = os.path.join(out_dir, "threshold_contigs_terminal_repeat_summary.tsv")
+
+keep_dt.to_csv(thresh_table, sep = "\t", index = False)
+
+threshold_contigs = keep_dt['contig']
+
+thresh_list = os.path.join(out_dir, "contigs_over_threshold.txt")
+threshold_contigs.to_csv(thresh_list, sep = "\t", index = False, header = False)
+
+

@@ -26,6 +26,8 @@ run_title = sys.argv[5]
 prod_gcodes = sys.argv[6]
 # phanotate file
 phan_file = sys.argv[7]
+#ORFcaller arg
+caller_arg = sys.argv[8]
 
 try:
     main_annot_df = pd.read_csv(gene_to_contig_table, sep = "\t")
@@ -35,7 +37,8 @@ try:
     tax_df = pd.read_csv(tax_table, sep = "\t")
 
 except:
-    print("couldn't load files for summary")
+    print(f"{os.path.basename(__file__)}: couldn't load files for summary")
+    sys.exit()
 
 # phanotate and prodigal
 if os.path.isfile(phan_file) and os.path.getsize(phan_file) > 0:
@@ -47,7 +50,10 @@ else:
 
 if os.path.isfile(prod_gcodes) and os.path.getsize(prod_gcodes) > 0:
     prod_df = pd.read_csv(prod_gcodes, header = None, sep = "\t", names = ['contig', 'gcode'])
-    prod_df['ORFcaller'] = 'prodigal'
+    if caller_arg == 'prodigal':
+        prod_df['ORFcaller'] = 'prodigal'
+    else:
+        prod_df['ORFcaller'] = 'prodigal-gv'
 else:
     prod_df = pd.DataFrame()
 
@@ -86,8 +92,8 @@ for fsa in os.listdir(sequin_dir):
             finalseq_list.append(f)
 
 if not finalseq_list:
-    print("no files found for seqIO parse " + str(sequin_dir))
-    exit
+    print(f"{os.path.basename(__file__)}: no files found for seqIO parse " + str(sequin_dir))
+    sys.exit()
 
 
 desc_list = []
@@ -105,7 +111,7 @@ for seq_file in finalseq_list:
         #gcode = re.search(r'\[gcode=(.*?)\]', fields[1]).group(1)
         desc_list.append([contig, chunkq, organism])
     except:
-        print("except")
+        print(f"{os.path.basename(__file__)}: seq record info parse failed.")
 
 desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
 
@@ -122,14 +128,14 @@ org_info_df['chunk_length'] = np.where(org_info_df['chunk_length'].isnull(),
                                        org_info_df['chunk_length'])
 
 ## make summary of virus seqs
-grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'dtr_seq', 'chunk_name', 
+grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'chunk_name', 
                      'input_name', 'taxon', 'taxonomy_hierarchy', 'taxon_level',
                      'avg_hallmark_AAI_to_ref', 'organism', 'gcode', 'ORFcaller'], dropna = False)
 
 summary_list = []
 for name, group in grouped_df:
-    if "Chunk" in str(name[3]):
-        outname = "@".join([name[0], name[3]])
+    if "Chunk" in str(name[2]):
+        outname = "@".join([name[0], name[2]])
     else:
         outname = name[0]
     gene_count = group['gene_name'].nunique()
@@ -141,18 +147,29 @@ for name, group in grouped_df:
     rep_hall_list = '|'.join(
         list(group.query("Evidence_source == 'rep_hall_hmm'")['evidence_description'])
         ).replace("-", " ")
-    if all(c in "ATCG" for c in str(name[2])):
+    rdrp_hall_count = group.query("Evidence_source == 'rdrp_hall_hmm'")['gene_name'].nunique()
+    rdrp_hall_list = '|'.join(
+        list(group.query("Evidence_source == 'rdrp_hall_hmm'")['evidence_description'])
+        ).replace("-", " ")
+    if not group.dtr_seq.replace('', np.nan).isna().all():
+        
+        dtr_seqf = group['dtr_seq'].mode()[0]
+    else:
+        dtr_seqf = "None"
+    
+    if all(c in "ATCG" for c in dtr_seqf):
         end_type = "DTR"
     else:
         end_type = "None"
         
     if gene_count >= 1:
-        summary_list.append([outname, name[4], name[9], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
-                             vir_hall_list, rep_hall_list, name[6], name[11]])
+        summary_list.append([outname, name[3], name[8], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
+                             rdrp_hall_count, vir_hall_list, rep_hall_list, rdrp_hall_list, name[5], name[10]])
 
 summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'virus_seq_length', 
                                                  'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',
-                                                 'virion_hallmark_genes', 'rep_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
+                                                 'RDRP_hallmark_count', 'virion_hallmark_genes', 'rep_hallmark_genes', 
+                                                 'RDRP_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
 
 
 summary_df['virus_seq_length'] = summary_df['virus_seq_length'].fillna(0)

@@ -78,7 +78,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
 
     df_0 = pd.DataFrame(dat_list, columns=['Window', 'Position start', 'Position stop',
                                              'Pass/Fail', 'Score', 'VirusGene', 'HypotheticalGene', 
-                                             'Intergenic', 'BacterialGene'])
+                                             'BacterialGene', 'Intergenic']) ##mjt
 
     #Now let's make the smoothed plot
 
@@ -155,7 +155,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     #merged_df = merged_df.append(merged_df[-1:])
     merged_df = pd.concat([merged_df, merged_df[-1:]])
     #now need to make it read actual last stop position (this os not rounded per window like the other coords)
-    merged_df = merged_df.replace(merged_df.iloc[-1][3],(total_len+1))
+    merged_df = merged_df.replace(merged_df['Position stop'].iloc[-1],(total_len+1))
 
     #now let's get the coordinates for the > 0 'chunks'
     #iterate over for true hit testing
@@ -179,6 +179,8 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     def left_cutoff(position, groupframe):
         calced_start =  int(position)
         lbisect_pos = bisect.bisect(list(groupframe['gene_start']), calced_start)
+        if lbisect_pos >= len(list(groupframe['gene_start'])):
+             lbisect_pos = len(list(groupframe['gene_start'])) - 1
         lchunk_cutoff = list(groupframe['gene_start'])[lbisect_pos]
         return lchunk_cutoff
 
@@ -246,18 +248,24 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     chunk_df.to_csv(chunk_sum_file, sep = "\t", index = False)
 
     ###Find optimal location on plot to place hallmark marker
-    if str(hallmark_arg) == 'virion':
-        vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
-            .query("Evidence_source == 'hallmark_hmm'")
-        
-
-        #print(vir_bait_table)
-    ## will need to update this statement for rna hallmarks
+    if "virion" in str(hallmark_arg):
+        virion_str = "Evidence_source == 'hallmark_hmm'"
     else:
-        vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
-            .query("Evidence_source == 'hallmark_hmm' | Evidence_source == 'rep_hall_hmm'")
-
+        virion_str = ""
+    if "rdrp" in str(hallmark_arg):
+        rdrp_str = "Evidence_source == 'rdrp_hall_hmm'"
+    else:
+        rdrp_str = ""
+    if "dnarep" in str(hallmark_arg):
+        rep_str = "Evidence_source == 'rep_hall_hmm'"
+    else:
+         rep_str = ""
     
+    query_str = ' | '.join(filter(None, [virion_str, rdrp_str, rep_str]))
+
+    vir_bait_table = group[['gene_start', 'gene_stop', 'Evidence_source']]\
+            .query(str(query_str))
+
     vir_bait_table['gene_start'] = vir_bait_table['gene_start'].astype(int)
     vir_bait_table['gene_stop'] = vir_bait_table['gene_stop'].astype(int)
 

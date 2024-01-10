@@ -23,15 +23,15 @@ evalue_cut = sys.argv[5]
 
 evalue_cut = float(evalue_cut)
 
+breadth_cut = sys.argv[6]
+
+breadth_cut = float(breadth_cut)
+
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
 
 
-
-
-#print("pyhmmscan pool part")
-
-starttime = time.time()
+starttime = time.perf_counter()
 
 def hmmscanner(seqs):
     scanout = list(hmmscan(pyhmmer.easel.SequenceFile(seqs, digital=True), pyhmmer.plan7.HMMFile(which_DB)))
@@ -48,7 +48,7 @@ for splitAA in os.listdir(input_dir):
             splitAA_list.append(f)
 
 if not splitAA_list:
-    print("no files found for pyhmmer in " + str(input_dir))
+    print(f"{os.path.basename(__file__)}: no files found for pyhmmer in " + str(input_dir))
     exit
 
 ## get lengths of each hmm
@@ -82,7 +82,7 @@ with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
 
 hmmscan_pools_df = pd.DataFrame(hmmscan_list, columns=["ORFquery", "contig", "target", "evalue", 
                                                        "pvalue", "n_aligned_positions", "hmm_coverage"])\
-    .query("evalue <= 0.1").query("hmm_coverage >= 0.8 | evalue <= @evalue_cut")\
+    .query("evalue <= 0.1 & hmm_coverage >= @breadth_cut").query("hmm_coverage >= 0.8 | evalue <= @evalue_cut")\
     .sort_values('evalue').drop_duplicates('ORFquery')
 
 if not hmmscan_pools_df.empty:
@@ -100,8 +100,8 @@ if not hmmscan_contig_sum.empty:
     hmmscan_contig_sum.to_csv(contig_sum_file,
                             sep = "\t", index = False)
 
-endtime = time.time()
+endtime = time.perf_counter()
 
 time_taken = endtime - starttime
 
-print("pyhmmscan part took: " + "%.2f" % time_taken + " seconds")
+print(f"pyhmmscan of {os.path.basename(which_DB)} finished in " + "%.2f" % time_taken + " seconds")

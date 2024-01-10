@@ -12,7 +12,7 @@ import random
 import string
 import re
 import logging
-
+from distutils.spawn import find_executable
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -27,24 +27,59 @@ def str2bool(v):
 ## taken directly from pharokka 
 ## (https://github.com/gbouras13/pharokka/blob/master/bin/input_commands.py)
 def validate_fasta(filename):
-	with open(filename, "r") as handle:
-		fasta = SeqIO.parse(handle, "fasta")
-		print("Checking Input FASTA.")
-		if any(fasta):
-			print("FASTA checked.")
-		else:
-			sys.exit("Error: Input file is not in the FASTA format.\n")  
+    with open(filename, "r") as handle:
+        fasta = SeqIO.parse(handle, "fasta")
+        if any(fasta):
+            print("FASTA checked.")
+        else:
+            sys.exit("Error: Input file is not in the FASTA format.\n")
+
+## important random color ASCII-logo printer
+def art_for_arts_sake():
+    color_list = [
+    '\033[31m', #red
+    '\033[32m', #green
+    '\033[33m', #orange
+    '\033[34m', #blue
+    '\033[35m', #purple
+    '\033[36m', #cyan
+    '\033[37m', #lightgrey
+    '\033[91m', #lightred
+    '\033[92m', #lightgreen
+    '\033[93m', #yellow
+    '\033[94m', #lightblue
+    '\033[95m', #pink
+    '\033[96m' #lightcyan
+    ]
+    ENDC = '\033[0m'
+
+    rand_color = random.sample(color_list, k=3)
+
+
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
+    print(f"{rand_color[0]}0000000000",f"{rand_color[1]}^^^^^^^^",f"{rand_color[0]}0000000000{ENDC}")
+    print(f"{rand_color[0]}0000000",f"{rand_color[1]}^^^^^^^^^^^^^^",f"{rand_color[0]}0000000{ENDC}")
+    print(f"{rand_color[0]}00000",f"{rand_color[1]}^^^^^",f"{rand_color[2]}CENOTE",
+        f"{rand_color[1]}^^^^^",f"{rand_color[0]}00000{ENDC}")
+    print(f"{rand_color[0]}00000",f"{rand_color[1]}^^^^^",f"{rand_color[2]}TAKER!",
+        f"{rand_color[1]}^^^^^",f"{rand_color[0]}00000{ENDC}")
+    print(f"{rand_color[0]}000000",f"{rand_color[1]}^^^^^^^^^^^^^^^^",f"{rand_color[0]}000000{ENDC}")
+    print(f"{rand_color[0]}0000000",f"{rand_color[1]}^^^^^^^^^^^^^^",f"{rand_color[0]}0000000{ENDC}")
+    print(f"{rand_color[0]}0000000000",f"{rand_color[1]}^^^^^^^^",f"{rand_color[0]}0000000000{ENDC}")
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
+    print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
 
 ### entry point function for cenote-taker
 def cenotetaker3():   
-    ct_starttime = time.time()              
+    ct_starttime = time.perf_counter()
     pathname = os.path.dirname(__file__)  
     cenote_script_path = os.path.abspath(pathname)      
-    print("this script dir: " + str(cenote_script_path))
+    print(f"this script dir: {str(cenote_script_path)}")
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.0.0"
+    __version__ = "3.2.0"
 
     Def_CPUs = os.cpu_count()
 
@@ -69,10 +104,6 @@ def cenotetaker3():
                                 non-circular contigs with viral hallmarks (True is highly recommended for sequenced material \
                                 not enriched for viruses. Virus-enriched samples probably should be False (you might check \
                                 enrichment with ViromeQC). Also, please use False if --lin_minimum_hallmark_genes is set to 0)')
-    #required_args.add_argument("-m", "--mem", dest="MEM", type=int, required=True, help='example: 56 -- Gigabytes of memory available for Cenote-Taker3. Typically, 16 to 32 should be used. Aim for at least 1/2 the value of \'-\' ')
-
-
-
 
 
     optional_args = parser.add_argument_group(' OPTIONAL ARGUMENTS for Cenote-Taker 3. See \
@@ -85,7 +116,8 @@ def cenotetaker3():
     optional_args.add_argument("-am", "--annotation_mode", dest="ANNOTATION_MODE", type=str2bool, default="False", 
                             help='Default: False -- Annotate sequences only (skip discovery). Only use if you believe \
                                 each provided sequence is viral')
-    optional_args.add_argument("--template_file", dest="template_file", type=str, default=str(cenote_script_path) + '/dummy_template.sbt', 
+    optional_args.add_argument("--template_file", dest="template_file", type=str, 
+                            default=str(cenote_script_path) + '/dummy_template.sbt', 
                             help='Template file with some metadata. Real one required for GenBank submission. Takes a \
                                 couple minutes to generate: https://submit.ncbi.nlm.nih.gov/genbank/template/submission/ ')
     optional_args.add_argument("--reads", nargs="+",
@@ -97,22 +129,17 @@ def cenotetaker3():
     optional_args.add_argument("--minimum_length_linear", dest="linear_length_cutoff", type=int, default='1000', 
                             help='Default: 1000 -- Minimum length of non-circualr contigs to be checked for viral \
                                 hallmark genes.')
-    optional_args.add_argument("-db", "--virus_domain_db", dest="virus_domain_db", type=str, default='virion', 
-                            help='default: virion -- \'standard\' database: all virus (DNA and RNA) hallmark genes \
-                                (i.e. genes with known function as virion structural, packaging, replication, or maturation \
-                                proteins specifically encoded by virus genomes) with low false discovery rate. \'virion\' \
-                                database: subset of \'standard\', hallmark genes encoding virion structural proteins, packaging \
+    optional_args.add_argument("-db", "--virus_domain_db", dest="HALL_LIST", type=str, choices=['virion', 'rdrp', 'dnarep'],
+                                default=['virion', 'rdrp'], nargs="+",
+                            help='default: virion rdrp -- Hits to which domain types should count as hallmark genes?\
+                                \'virion\' database: genes encoding virion structural proteins, packaging \
                                 proteins, or capsid maturation proteins (DNA and RNA genomes) with LOWEST false discovery \
-                                rate. \'rna_virus\' database: For RNA virus hallmarks only. Includes RdRp and capsid genes \
-                                of RNA viruses. Low false discovery rate.')
+                                rate. \'rdrp\' database: For RNA virus-derived RNA-dependent RNA polymerase. \
+                                \'dnarep\' database: replication genes of DNA viruses. mostly useful for small \
+                                DNA viruses, e.g. CRESS viruses')
     optional_args.add_argument("--lin_minimum_hallmark_genes", dest="LIN_MINIMUM_DOMAINS", type=int, default='1', 
                             help='Default: 1 -- Number of detected viral hallmark genes on a non-circular contig to be \
-                                considered viral and recieve full annotation. WARNING: Only choose \'0\' if you have \
-                                prefiltered the contig file to only contain putative viral contigs (using another \
-                                method such as VirSorter or DeepVirFinder), or you are very confident you have \
-                                physically enriched for virus particles very well (you might check with ViromeQC). Otherwise, \
-                                the duration of the run will be extended many many times over, largely annotating \
-                                non-viral contigs, which is not what Cenote-Taker 3 is meant for. For unenriched samples,\
+                                considered viral and recieve full annotation. \
                                 \'2\' might be more suitable, yielding a false positive rate near 0. ')
     optional_args.add_argument("--circ_minimum_hallmark_genes", dest="CIRC_MINIMUM_DOMAINS", type=int, default='1', 
                             help='Default:1 -- Number of detected viral hallmark genes on a circular contig to be \
@@ -121,26 +148,29 @@ def cenotetaker3():
                                 domains cautiously. For unenriched samples, \'1\' might be more suitable. ')
     #optional_args.add_argument("--known_strains", dest="handle_knowns", type=str, default='do_not_check_knowns', help='Default: do_not_check_knowns -- do not check if putatively viral contigs are highly related to known sequences (via MEGABLAST). \'blast_knowns\': REQUIRES \'--blastn_db\' option to function correctly. ')
     #optional_args.add_argument("--blastn_db", dest="BLASTN_DB", type=str, default='none', help='Default: none -- Set a database if using \'--known_strains\' option. Specify BLAST-formatted nucleotide datase. Probably, use only GenBank \'nt\' database, \'nt viral\', or a subset therof, downloaded from ftp://ftp.ncbi.nlm.nih.gov/ Headers must be GenBank record format')
-    optional_args.add_argument("--enforce_start_codon", dest="ENFORCE_START_CODON", type=str2bool, default=False, 
-                            help='Default: False -- For final genome maps, require ORFs to be initiated by a typical \
-                                start codon? GenBank submissions containing ORFs without start codons can be rejected. \
-                                However, if True,  important but incomplete genes could be culled from the final output. \
-                                This is relevant mainly to contigs of incomplete genomes ')
-    optional_args.add_argument("-hh", "--hhsuite_tool", dest="HHSUITE_TOOL", type=str, default='hhblits', 
-                            help=' default: hhblits -- hhblits will query PDB, pfam, and CDD to annotate ORFs escaping \
-                                identification via upstream methods. \'hhsearch\': hhsearch, a more sensitive tool, will \
-                                query PDB, pfam, and CDD to annotate ORFs escaping identification via upstream methods. \
+    #optional_args.add_argument("--enforce_start_codon", dest="ENFORCE_START_CODON", type=str2bool, default=False, 
+    #                        help='Default: False -- For final genome maps, require ORFs to be initiated by a typical \
+    #                            start codon? GenBank submissions containing ORFs without start codons can be rejected. \
+    #                            However, if True,  important but incomplete genes could be culled from the final output. \
+    #                            This is relevant mainly to contigs of incomplete genomes ')
+    optional_args.add_argument("-hh", "--hhsuite_tool", dest="HHSUITE_TOOL", type=str, 
+                               choices=['none', 'hhblits', 'hhsearch'], default='none', 
+                            help=' default: none -- hhblits: query any of PDB, pfam, and CDD (depending on what is installed)\
+                                to annotate ORFs escaping identification via upstream methods.\
+                                hhsearch: a more sensitive tool, will \
+                                query PDB, pfam, and CDD (depending on what is installed) to annotate ORFs. \
                                 (WARNING: hhsearch takes much, much longer than hhblits and can extend the duration of the \
-                                run many times over. Do not use on large input contig files). \'no_hhsuite_tool\': forgoes \
+                                run many times over. Do not use on large input contig files). \'none\': forgoes \
                                 annotation of ORFs with hhsuite. Fastest way to complete a run. ')
 
-    optional_args.add_argument("--caller", dest="CALLER", type=str, choices=['default', 'prodigal', 'phanotate'],
-                            default='default', 
-                            help=' ORF caller for identified viruses. default: Cenote-Taker 3\
-                                will choose based on preliminary taxonomy call (phages = phanotate, others = prodigal)\
-                                prodigal: prodigal (meta mode) for all virus sequences. phanotate: phanotate for \
-                                all virus sequences. Note: phanotate takes longer than prodigal, exponentially so \
-                                for LONG input contigs')
+    optional_args.add_argument("--caller", dest="CALLER", type=str, choices=['prodigal-gv', 'prodigal', 'phanotate', 'adaptive'],
+                            default='prodigal-gv', 
+                            help=' ORF caller for viruses. default: prodigal-gv\
+                                prodigal-gv: prodigal-gv only (prodigal with extra models for unusual viruses) (meta mode)\
+                                prodigal: prodigal classic only (meta mode). phanotate: phanotate only \
+                                Note: phanotate takes longer than prodigal, exponentially so for LONG input contigs.\
+                                adaptive: will choose based on preliminary taxonomy call \
+                                (phages = phanotate, others = prodigal-gv)')
 
     ## should be host prediction, instead
     #optional_args.add_argument("--crispr_file", dest="CRISPR_FILE", type=str, default='none', help='Tab-separated file with CRISPR hits in the following format: CONTIG_NAME HOST_NAME NUMBER_OF_MATCHES. You could use this tool: https://github.com/edzuf/CrisprOpenDB. Then reformat for Cenote-Taker 3')
@@ -176,9 +206,7 @@ def cenotetaker3():
 
     ### I need to account for this or remove it:
     optional_args.add_argument("--filter_out_plasmids", dest="FILTER_PLASMIDS", type=str2bool, default=True, 
-                            help='Default: True -- True - OR - False. If True, hallmark genes of plasmids will not count \
-                                toward the minimum hallmark gene parameters. If False, hallmark genes of plasmids will count. \
-                                    Plasmid hallmark gene set is not necessarily comprehensive at this time. ')
+                            help=argparse.SUPPRESS)
     ### I need to account for this or remove it:
     #optional_args.add_argument("--scratch_directory", dest="SCRATCH_DIR", type=str, default="none", 
     #                        help='Default: none -- When running many instances of Cenote-Taker 3, it seems to run more \
@@ -188,16 +216,11 @@ def cenotetaker3():
     optional_args.add_argument("--cenote-dbs", dest="C_DBS", type=str, default="default", 
                             help='DB path. If not set here, Cenote-Taker looks for environmental variable CENOTE_DBS. \
                                 Then, if this variable is unset, DB path is assumed to be ' + str(parentpath))
+    optional_args.add_argument("--hmmscan_dbs", dest="HMM_DBS", type=str, default="v3.1.1", 
+                            help='HMMscan DB version. looks in cenote_db_path/hmmscan_DBs/')
     optional_args.add_argument("--wrap", dest="WRAP", type=str2bool, default="True", 
                             help='Default: True -- Wrap/rotate DTR/circular contigs so the start codon of an ORF is \
                                 the first nucleotide in the contig/genome')
-    optional_args.add_argument("--phrogs", dest="PHROGS", type=str2bool, default="True", 
-                            help='Default: True -- Use PHROG HMMs to add annotations? See github repo for DB download \
-                                instructions')
-    optional_args.add_argument("--smk", dest="SMK", type=str2bool, default="False", help=argparse.SUPPRESS)
-                            #use snakemake file (instead of bash)?
-    optional_args.add_argument("--until", dest="UNTIL", type=str, default="all", help=argparse.SUPPRESS)
-                            #run snakemake until
 
 
     args = parser.parse_args()
@@ -209,6 +232,8 @@ def cenotetaker3():
         args.circ_length_cutoff = 1
         args.linear_length_cutoff = 1
         args.PROPHAGE = "False"
+
+    HALL_TYPE = ' '.join(map(str,args.HALL_LIST))
 
     ## make out directory (rename any existing directory)
     if not os.path.isdir(str(args.run_title)):
@@ -232,6 +257,7 @@ def cenotetaker3():
     logger.addHandler(stream_handler)
     #########################
 
+    art_for_arts_sake()
 
     validate_fasta(args.original_contigs)
 
@@ -240,8 +266,6 @@ def cenotetaker3():
         READS = ' '.join(map(str,args.READS))
     else:
         READS = str(args.READS)
-    #print(READS)
-
 
     ## DB path check/change
     if args.C_DBS == "default" and os.getenv('CENOTE_DBS') != None:
@@ -249,62 +273,93 @@ def cenotetaker3():
     elif args.C_DBS == "default":
         args.C_DBS = parentpath
 
+    ## check that all DBs exist
+    def check_ct3_dbs():
+        ## checking db path
+        if not os.path.isdir(str(args.C_DBS)):
+            logger.warning(f"database directory is not found at {str(args.C_DBS)}. Exiting.")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            sys.exit()
+        ## checking hmm dir
+        if not os.path.isdir(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))):
+            logger.warning(f"hmm db directory is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))}")
+            logger.warning(f"looking for others in {os.path.join(str(args.C_DBS), 'hmmscan_DBs')}")
+            for path, subdirs, files in os.walk(os.path.join(str(args.C_DBS), 'hmmscan_DBs')):
+                for name in files:
+                    if name == 'Virion_HMMs.h3m':
+                        bottom_dir = path.split('/')[-1:][0]
+                        sec_dir = '/'.join(path.split('/')[0:-1])
+                        if sec_dir == os.path.join(str(args.C_DBS), 'hmmscan_DBs'):
+                            args.HMM_DBS = bottom_dir
+                        else:
+                            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3\
+                                           for installing databases\
+                                           and setting CENOTE_DBS environmental variable")
+                            logger.warning("Exiting.")
+                            sys.exit()
+        ## checking hmm files
+        hmm_flist = ['Virion_HMMs.h3m', 'DNA_rep_HMMs.h3m', 'RDRP_HMMs.h3m', 
+                     'Useful_Annotation_HMMs.h3m', 'phrogs_for_ct.h3m']
+        for hf in hmm_flist:
+            if not os.path.isfile(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS), hf)):
+                logger.warning(f"hmm db file is not found at")
+                logger.warning(f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS), hf)}")
+                logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                            and setting CENOTE_DBS environmental variable")
+                logger.warning("Exiting.")
+                sys.exit()
+        ## checking mmseqs tax db
+        if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'refseq_virus_prot_taxDB')):
+            logger.warning(f"mmseqs tax db file is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'refseq_virus_prot_taxDB')}")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            logger.warning("Exiting.")
+            sys.exit()
+        ## checking mmseqs cdd db
+        if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'CDD')):
+            logger.warning(f"mmseqs CDD db file is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'CDD')}")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            logger.warning("Exiting.")
+            sys.exit()
+         ## checking virus domain list file
+        if not os.path.isfile(os.path.join(str(args.C_DBS), 'viral_cdds_and_pfams_191028.txt')):
+            logger.warning(f"virus domain list file is not found at")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'viral_cdds_and_pfams_191028.txt')}")
+            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
+                           and setting CENOTE_DBS environmental variable")
+            logger.warning("Exiting.")
+            sys.exit()
+
+    check_ct3_dbs()
+
+    ### check dependencies
     def is_tool(name):
         """Check whether `name` is on PATH."""
-        from distutils.spawn import find_executable
         return find_executable(name) is not None
 
-    if not is_tool("samtools") and str(READS) != "none" :
-        logger.warning("samtools is not found. Exiting.")
-        quit()    
-    if not is_tool("minimap2") and str(READS) != "none" :
-        logger.warning("minimap2 is not found. Exiting.")
-        quit()
-    if not is_tool("tRNAscan-SE") :
-        logger.warning("tRNAscan-SE is not found. Exiting.")
-        quit()
-    if not is_tool("tbl2asn") :
-        logger.warning("tbl2asn is not found. Exiting.")
-        quit()
-    if not is_tool("seqkit") :
-        logger.warning("seqkit is not found. Exiting.")
-        quit()
-    #    if not is_tool("hhblits") :
-    #        print ("hhblits is not found. Exiting.")
-    #        quit()
-    if not is_tool("bedtools") :
-        logger.warning("bedtools is not found. Exiting.")
-        quit()
-    if not is_tool("phanotate.py") :
-        logger.warning("phanotate is not found. Exiting.")
-        quit()
-    if not is_tool("prodigal") :
-        logger.warning("prodigal is not found. Exiting.")
-        quit()
-    if not is_tool("mmseqs") :
-        logger.warning("mmseqs is not found. Exiting.")
-        quit()
+    tool_dep_list = ['samtools', 'minimap2', 'tRNAscan-SE', 'seqkit', 'hhblits', 
+                     'bedtools', 'phanotate.py', 'mmseqs']
+    
+    for tool in tool_dep_list:
+        if not is_tool(tool):
+            logger.warning(f"{tool} is not found. Exiting.")
+            sys.exit()   
+
 
     reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
     installed_packages = [r.decode().split('==')[0] for r in reqs.split()]
 
+    python_dep_list = ['pyhmmer', 'numpy', 'pandas', 'biopython', 'pyrodigal-gv']
 
-    if 'pyhmmer' not in installed_packages:
-        logger.warning("pyhmmer not found in installed python packages. Exiting.")
-        quit()
-
-    if 'numpy' not in installed_packages:
-        logger.warning("numpy not found in installed python packages. Exiting.")
-        quit()
-
-    if 'pandas' not in installed_packages:
-        logger.warning("pandas not found in installed python packages. Exiting.")
-        quit()
-
-    if 'biopython' not in installed_packages:
-        logger.warning("biopython not found in installed python packages. Exiting.")
-        quit()
-
+    for pydep in python_dep_list:
+        if pydep not in installed_packages:
+            logger.warning(f"{pydep} not found in installed python packages. Exiting.")
+            sys.exit() 
 
     ## check run_title suitability
     if re.search(r'^[a-zA-Z0-9_]+$', str(args.run_title)) and \
@@ -314,94 +369,39 @@ def cenotetaker3():
         logger.warning(f"{str(args.run_title)} is not a valid name for the run title ( -r argument)")
         logger.warning( "the run title needs to be only letters, numbers and underscores (_) and \
               18 characters or less. Exiting.")
-        quit()
-
-    ## this snakemake script is not in production, please ignore
-    if args.SMK == True:
-        ## making config file from arguments
-        config_smk = (
-            f"CENOTE_SCRIPTS: {str(cenote_script_path)}\n"
-            f"original_contigs: {str(args.original_contigs)}\n"
-            f"run_title: {str(args.run_title)}\n"
-            f"PROPHAGE: {str(args.PROPHAGE)}\n"
-            f"CPU: {str(args.CPU)}\n"
-            f"VERSION: {str(__version__)}\n"
-            f"ANNOTATION_MODE: {str(args.ANNOTATION_MODE)}\n"
-            f"TEMPLATE_FILE: {str(args.template_file)}\n"
-            f"READS: {str(READS)}\n"
-            f"circ_length_cutoff: {str(args.circ_length_cutoff)}\n"
-            f"linear_length_cutoff: {str(args.linear_length_cutoff)}\n"
-            f"CIRC_MINIMUM_DOMAINS: {str(args.CIRC_MINIMUM_DOMAINS)}\n"
-            f"LIN_MINIMUM_DOMAINS: {str(args.LIN_MINIMUM_DOMAINS)}\n"
-            f"HALL_TYPE: {str(args.virus_domain_db)}\n"
-            f"C_DBS: {str(args.C_DBS)}\n"
-            f"WRAP: {str(args.WRAP)}\n"
-            f"PHROGS: {str(args.PHROGS)}\n"
-            f"CALLER: {str(args.CALLER)}\n"
-        )
-
-        out_conf = os.path.join(str(args.run_title), "smk_config.yaml")
-        with open(out_conf, "w") as f:
-            f.write(config_smk)
-
-        print(config_smk)
-
-        SMK_FILE = os.path.join(cenote_script_path, "Snakefile")
-        smk_cmd = (
-            f"snakemake --snakefile {SMK_FILE} "
-            f"--directory {os.getcwd()} "
-            f"--cores {int(args.CPU)} "
-            f"--configfile {out_conf} "
-            f"--until {str(args.UNTIL)}"
-        )
-        reportf = os.path.join(str(args.run_title), "run_report.html")
-        smk_report_cmd = (
-            f"snakemake --snakefile {SMK_FILE} "
-            f"--directory {os.getcwd()} "
-            f"--cores {int(args.CPU)} "
-            f"--configfile {out_conf} "
-            f"--report {reportf}"
-        ) 
-
-        try:
-            subprocess.run(smk_cmd, check=True, shell=True)
-            subprocess.run(smk_report_cmd, check=True, shell=True)
-        except:
-            logger.warning("couldn't run snakemake")
-        
+        sys.exit()
 
 
-    else:
+    #### define logging of subprocess (cenote_main.sh) ####
+    def log_subprocess_output(pipe):
+        for line in iter(pipe.readline, b''): # b'\n'-separated lines
+            logger.info(line.decode("utf-8").rstrip('\n'))
 
-        #### define logging of subprocess (cenote_main.sh) ####
-        def log_subprocess_output(pipe):
-            for line in iter(pipe.readline, b''): # b'\n'-separated lines
-                logger.info(line.decode("utf-8").rstrip('\n'))
+    ### run the main script
+    process = Popen(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
+                    str(args.original_contigs), str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
+                    str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
+                    str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
+                    str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
+                    str(HALL_TYPE), str(args.C_DBS), str(args.HMM_DBS), str(args.WRAP), 
+                    str(args.CALLER), str(args.HHSUITE_TOOL), 
+                    str(args.isolation_source), str(args.collection_date), str(args.metagenome_type), 
+                    str(args.srr_number), str(args.srx_number), str(args.biosample), 
+                    str(args.bioproject), str(args.ASSEMBLER), str(args.MOLECULE_TYPE), 
+                    str(args.DATA_SOURCE)],
+                    stdout=PIPE, stderr=STDOUT)
 
-        ### run the main script
-        process = Popen(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
-                        str(args.original_contigs), str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
-                        str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
-                        str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
-                        str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
-                        str(args.virus_domain_db), str(args.C_DBS), str(args.WRAP), str(args.PHROGS),
-                        str(args.CALLER), str(args.isolation_source),
-                        str(args.collection_date), str(args.metagenome_type), str(args.srr_number), 
-                        str(args.srx_number), str(args.biosample), str(args.bioproject),
-                        str(args.ASSEMBLER), str(args.MOLECULE_TYPE), str(args.DATA_SOURCE)],
-                        stdout=PIPE, stderr=STDOUT)
+    with process.stdout:
+        log_subprocess_output(process.stdout)
+    exitcode = process.wait()
 
-        with process.stdout:
-            log_subprocess_output(process.stdout)
-        exitcode = process.wait()
-
-    ct_endtime = time.time()
+    ct_endtime = time.perf_counter()
 
     time_taken = ct_endtime - ct_starttime
 
     time_taken = round(time_taken, 2) 
 
-    logger.info("This Cenote-Taker run took: " + str(timedelta(seconds=time_taken)))
+    logger.info("This Cenote-Taker run finished in " + str(timedelta(seconds=time_taken)))
 
 if __name__ == "__main__":
     cenotetaker3()

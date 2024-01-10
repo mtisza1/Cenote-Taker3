@@ -61,19 +61,20 @@ def get_ct3_dbs():
         sys.exit()
 
     if str(args.HMM_DB) == "True":
-        # https://zenodo.org/records/8436361/files/hmmscan_DBs.tgz
+        # https://zenodo.org/records/10480890/files/hmmscan_DBs.tgz
         print ("running HMM database update/install")
         HMM_outdir = os.path.join(str(args.C_DBS), "hmmscan_DBs")
         if not os.path.isdir(HMM_outdir):
             os.makedirs(HMM_outdir, exist_ok=True)
         subprocess.call(['wget', '--directory-prefix=' + str(HMM_outdir), 
-                        'https://zenodo.org/records/8436361/files/hmmscan_DBs.tgz'])
+                        'https://zenodo.org/records/10480890/files/hmmscan_DBs.tgz'])
         subprocess.call(['tar', '-xvf', os.path.join(HMM_outdir, 'hmmscan_DBs.tgz'),
                         '-C',  str(HMM_outdir)])
         subprocess.call(['rm', '-f', os.path.join(HMM_outdir, 'hmmscan_DBs.tgz')])
 
     if str(args.MMSEQS_TAX) == "True":
-        # https://zenodo.org/records/8436361/files/refseq_virus_prot.fasta.gz
+        # https://zenodo.org/records/10480890/files/refseq_virus_prot.fasta.gz
+        # https://zenodo.org/records/10480890/files/refseq_virus_prot_taxids.mmseqs_fmt.tsv
         print ("running mmseqs taxdb database update/install")
         if not is_tool("mmseqs") :
             print("mmseqs is not found. Exiting. Is conda environment activated?")
@@ -82,11 +83,11 @@ def get_ct3_dbs():
         if not os.path.isdir(MMSEQS_outdir):
             os.makedirs(MMSEQS_outdir, exist_ok=True)
         subprocess.call(['wget', '--directory-prefix=' + str(MMSEQS_outdir), 
-                        'https://zenodo.org/records/8436361/files/refseq_virus_prot.fasta.gz'])
+                        'https://zenodo.org/records/10480890/files/refseq_virus_prot.fasta.gz'])
         subprocess.call(['gunzip', '-d', os.path.join(MMSEQS_outdir, 'refseq_virus_prot.fasta.gz')])
         #subprocess.call(['rm', '-f', os.path.join(MMSEQS_outdir, 'refseq_virus_prot.fasta.gz')])
         subprocess.call(['wget', '--directory-prefix=' + str(MMSEQS_outdir), 
-                        'https://zenodo.org/records/8436361/files/refseq_virus_prot_taxids.mmseqs_fmt.tsv'])
+                        'https://zenodo.org/records/10480890/files/refseq_virus_prot_taxids.mmseqs_fmt.tsv'])
         subprocess.call(['mmseqs', 'createdb', os.path.join(MMSEQS_outdir, 'refseq_virus_prot.fasta'), 
                         os.path.join(MMSEQS_outdir, 'refseq_virus_prot_taxDB')])
         subprocess.call(['mmseqs', 'createtaxdb', os.path.join(MMSEQS_outdir, 'refseq_virus_prot_taxDB'), 
@@ -94,10 +95,10 @@ def get_ct3_dbs():
                         os.path.join(MMSEQS_outdir, 'refseq_virus_prot_taxids.mmseqs_fmt.tsv')])
 
     if str(args.MMSEQS_CDD) == "True":
-        #https://zenodo.org/records/8436361/files/cddid_all.tbl
+        # https://zenodo.org/records/10480890/files/cddid_all.tbl
         print ("running mmseqs CDD database update/install")
         subprocess.call(['wget', '--directory-prefix=' + str(MMSEQS_outdir), 
-                        'https://zenodo.org/records/8436361/files/cddid_all.tbl'])
+                        'https://zenodo.org/records/10480890/files/cddid_all.tbl'])
         if not is_tool("mmseqs") :
             print("mmseqs is not found. Exiting. Is conda environment activated?")
             sys.exit()
@@ -109,10 +110,10 @@ def get_ct3_dbs():
                         os.path.join(MMSEQS_outdir, 'tmp')])
 
 
-    #https://zenodo.org/records/8436361/files/viral_cdds_and_pfams_191028.txt
+    # https://zenodo.org/records/10480890/files/viral_cdds_and_pfams_191028.txt
     if str(args.DOM_LIST) == "True":
         subprocess.call(['wget', '--directory-prefix=' + str(args.C_DBS), 
-                        'https://zenodo.org/records/8436361/files/viral_cdds_and_pfams_191028.txt'])
+                        'https://zenodo.org/records/10480890/files/viral_cdds_and_pfams_191028.txt'])
 
     if str(args.HHCDD) == "True":
         print ("running hhsuite CDD database update/install")

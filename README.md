@@ -50,6 +50,11 @@ Image of example genome map:
 
 *A bioconda package is forthcoming*
 
+**Most recent versions**
+
+Cenote-Taker 3 scripts:   `v3.2.0`
+Cenote-Taker 3 Databases: `v3.1.1`
+
 **This should work on MacOS and Linux**
 
 1)  Clone this GitHub repo

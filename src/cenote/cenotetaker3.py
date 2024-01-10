@@ -216,7 +216,7 @@ def cenotetaker3():
     optional_args.add_argument("--cenote-dbs", dest="C_DBS", type=str, default="default", 
                             help='DB path. If not set here, Cenote-Taker looks for environmental variable CENOTE_DBS. \
                                 Then, if this variable is unset, DB path is assumed to be ' + str(parentpath))
-    optional_args.add_argument("--hmmscan_dbs", dest="HMM_DBS", type=str, default="v3.1.0", 
+    optional_args.add_argument("--hmmscan_dbs", dest="HMM_DBS", type=str, default="v3.1.1", 
                             help='HMMscan DB version. looks in cenote_db_path/hmmscan_DBs/')
     optional_args.add_argument("--wrap", dest="WRAP", type=str2bool, default="True", 
                             help='Default: True -- Wrap/rotate DTR/circular contigs so the start codon of an ORF is \

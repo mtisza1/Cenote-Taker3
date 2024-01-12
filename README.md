@@ -1,6 +1,9 @@
 # Cenote-Taker3
 
-Discover and annotate the virome
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/cenote-taker3/README.html)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/cenote-taker3/badges/downloads.svg)](https://anaconda.org/bioconda/cenote-taker3)
+
+Discover and annotate the virome.
 
 ![Logo](images/cenote-taker_3_logo.png)
 
@@ -48,8 +51,6 @@ Image of example genome map:
 
 ## Installation Instructions
 
-*A bioconda package is forthcoming*
-
 **Most recent versions**
 
 Cenote-Taker 3 scripts:   `v3.2.0`
@@ -57,17 +58,71 @@ Cenote-Taker 3 Databases: `v3.1.1`
 
 **This should work on MacOS and Linux**
 
-1)  Clone this GitHub repo
-
-2)  Using `mamba` (package manager within `conda`) and the provided yaml file, make the environment:
-
-`mamba env create -f Cenote-Taker3/environment/ct3_env.yaml`
-
 *Versions used in test installations*
 
 mamba 1.5.1
 
 conda 23.7.4
+
+### Bioconda package (most users)
+
+`mamba` is better/faster than `conda` for almost all solving/installation tasks
+
+1) Use `mamba` to install the bioconda package
+
+`mamba create -n ct3_env -c conda-forge -c bioconda cenote-taker3`
+
+<details>
+
+  <summary>Using conda instead</summary>
+
+  `conda create -n ct3_env -c conda-forge -c bioconda cenote-taker3`
+
+</details>
+
+*You should be able to type `cenotetaker3` and `get_ct3_dbs` in terminal to bring up help menu now*
+
+2)  Change to a directory where you'd like to install databases and run database script, specify DB directory with `-o`.
+
+*Total DB file size of 3.0 GB after file decompression*
+
+`cd ..`
+
+`get_ct3_dbs -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T --domain_list T`
+
+<details>
+
+  <summary>With optional hhsuite databases</summary>
+  
+  Warning: due to inconsistent server speed, these downloads may take over 2 hours.
+  
+  You may download one or more hhsuite DB.
+  
+  The data footprint is:
+  
+  | Database | Size   |
+  |----------|--------|
+  | CDD      | 6.1 GB |
+  | pfam     | 4.6 GB |
+  | pdb70    | 56 GB  |
+  
+  ```         
+  get_ct3_dbs -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
+  ```
+
+</details>
+
+3)  Set the database directory as a conda environmental variable.
+
+`conda env config vars set CENOTE_DBS=/path/to/ct3_DBs`
+
+### From source (development versions)
+
+1)  Clone this GitHub repo
+
+2)  Using `mamba` (package manager within `conda`) and the provided yaml file, make the environment:
+
+`mamba env create -f Cenote-Taker3/environment/ct3_env.yaml`
 
 3)  Activate the conda environment.
 
@@ -188,8 +243,19 @@ cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T --reads my_reads/*
 │   │   {run_title}*cmt                           <b><- sequin comment file</b>
 │
 └───ct_processing/
-│   │   <b>--- many intermediate files ---</b>
+    │   <b>--- many intermediate files ---</b>
 </pre>
+
+
+### Ideas for downstream analyses
+
+[CheckV](https://github.com/cmmr/Marker-MAGu) for virus genome completeness estimation.
+
+[BACPHLIP](https://github.com/adamhockenberry/bacphlip) for phage lifestyle prediction (only use complete/near-complete phage genomes).
+
+[VContact3](https://bitbucket.org/MAVERICLab/vcontact3/src/master/) for genome clustering and taxonomy.
+
+[iPHoP](https://bitbucket.org/srouxjgi/iphop/src/main/) for prokaryotic virus host prediction.
 
 ### Notes
 

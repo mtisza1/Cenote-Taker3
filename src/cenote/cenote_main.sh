@@ -9,29 +9,38 @@ PROPHAGE=$4
 CPU=$5
 VERSION=$6
 ANNOTATION_MODE=$7
-TEMPLATE_FILE=$8
-READS=$9
-circ_length_cutoff=${10}
-linear_length_cutoff=${11}
-CIRC_MINIMUM_DOMAINS=${12}
-LIN_MINIMUM_DOMAINS=${13}
-HALL_TYPE=${14}
-C_DBS=${15}
-HMM_DBS=${16}
-WRAP=${17}
-CALLER=${18}
-HHSUITE_TOOL=${19} ##
-ISO_SOURCE=${20}
-COLLECT_DATE=${21}
-META_TYPE=${22}
-SRR=${23}
-SRX=${24}
-BIOSAMP=${25}
-PRJ=${26}
-ASSEMBLER=${27}
-MOL_TYPE=${28}
-DATA_SOURCE=${29}
+C_OUTDIR=$8
+TEMPLATE_FILE=$9
+READS=${10}
+circ_length_cutoff=${11}
+linear_length_cutoff=${12}
+CIRC_MINIMUM_DOMAINS=${13}
+LIN_MINIMUM_DOMAINS=${14}
+HALL_TYPE=${15}
+C_DBS=${16}
+HMM_DBS=${17}
+WRAP=${18}
+CALLER=${19}
+HHSUITE_TOOL=${20}
+ISO_SOURCE=${21}
+COLLECT_DATE=${22}
+META_TYPE=${23}
+SRR=${24}
+SRX=${25}
+BIOSAMP=${26}
+PRJ=${27}
+ASSEMBLER=${28}
+MOL_TYPE=${29}
+DATA_SOURCE=${30}
+GENBANK=${31}
 
+### check output directory (created in cenotetaker3.py)
+
+if [ ! -d $C_OUTDIR ] ; then
+	echo "cannot find output directory $C_OUTDIR"
+	echo "exiting"
+	exit
+fi
 
 ### check HHsuite DBs
 if [ -s ${C_DBS}/hhsearch_DBs/NCBI_CD/NCBI_CD_a3m.ffdata ] ; then
@@ -98,11 +107,11 @@ MDYT=$( date +"%m-%d-%y---%T" )
 echo -e "${BBlack}time update: configuring run directory  ${MDYT}${Color_Off}"
 
 
-if [ ! -d "${run_title}/ct_processing" ]; then
-	mkdir ${run_title}/ct_processing
+if [ ! -d "${C_OUTDIR}/ct_processing" ]; then
+	mkdir -p ${C_OUTDIR}/ct_processing
 fi
 
-TEMP_DIR="${run_title}/ct_processing"
+TEMP_DIR="${C_OUTDIR}/ct_processing"
 
 ### setting universal minimum length
 if [ $circ_length_cutoff -gt $linear_length_cutoff ] ; then
@@ -114,29 +123,30 @@ fi
 
 
 ### save all the parameters in the run_arguments.txt file then print to terminal
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@" >> ${run_title}/run_arguments.txt
-echo "Your specified arguments:" >> ${run_title}/run_arguments.txt
-echo "Cenote-Taker version:              $VERSION" >> ${run_title}/run_arguments.txt
-echo "original contigs:                  $original_contigs" >> ${run_title}/run_arguments.txt
-echo "title of this run:                 $run_title" >> ${run_title}/run_arguments.txt
-echo "Prune prophages?                   $PROPHAGE" >> ${run_title}/run_arguments.txt
-echo "CPUs used for run:                 $CPU" >> ${run_title}/run_arguments.txt
-echo "Annotation only?                   $ANNOTATION_MODE" >> ${run_title}/run_arguments.txt
-echo "minimum circular contig length:    $circ_length_cutoff" >> ${run_title}/run_arguments.txt
-echo "minimum linear contig length:      $linear_length_cutoff" >> ${run_title}/run_arguments.txt
-echo "virus hallmark type(s) to count:   $HALL_TYPE" >> ${run_title}/run_arguments.txt
-echo "min. viral hallmarks for linear:   $LIN_MINIMUM_DOMAINS" >> ${run_title}/run_arguments.txt
-echo "min. viral hallmarks for circular: $CIRC_MINIMUM_DOMAINS" >> ${run_title}/run_arguments.txt
-echo "Wrap contigs?                      $WRAP" >> ${run_title}/run_arguments.txt
-echo "HMM db version                     $HMM_DBS" >> ${run_title}/run_arguments.txt
-echo "ORF Caller:                        $CALLER" >> ${run_title}/run_arguments.txt
-echo "Cenote DBs directory:              $C_DBS" >> ${run_title}/run_arguments.txt
-echo "Cenote scripts directory:          $CENOTE_SCRIPTS" >> ${run_title}/run_arguments.txt
-echo "Template file:                     $TEMPLATE_FILE" >> ${run_title}/run_arguments.txt
-echo "read file(s):                      $READS" >> ${run_title}/run_arguments.txt
-echo "HHsuite tool:                      $HHSUITE_TOOL" >> ${run_title}/run_arguments.txt
+echo "@@@@@@@@@@@@@@@@@@@@@@@@@" >> ${C_OUTDIR}/run_arguments.txt
+echo "Your specified arguments:" >> ${C_OUTDIR}/run_arguments.txt
+echo "Cenote-Taker version:              $VERSION" >> ${C_OUTDIR}/run_arguments.txt
+echo "original contigs:                  $original_contigs" >> ${C_OUTDIR}/run_arguments.txt
+echo "title of this run:                 $run_title" >> ${C_OUTDIR}/run_arguments.txt
+echo "output directory:                  $C_OUTDIR" >>${C_OUTDIR}/run_arguments.txt
+echo "Prune prophages?                   $PROPHAGE" >> ${C_OUTDIR}/run_arguments.txt
+echo "CPUs used for run:                 $CPU" >> ${C_OUTDIR}/run_arguments.txt
+echo "Annotation only?                   $ANNOTATION_MODE" >> ${C_OUTDIR}/run_arguments.txt
+echo "minimum circular contig length:    $circ_length_cutoff" >> ${C_OUTDIR}/run_arguments.txt
+echo "minimum linear contig length:      $linear_length_cutoff" >> ${C_OUTDIR}/run_arguments.txt
+echo "virus hallmark type(s) to count:   $HALL_TYPE" >> ${C_OUTDIR}/run_arguments.txt
+echo "min. viral hallmarks for linear:   $LIN_MINIMUM_DOMAINS" >> ${C_OUTDIR}/run_arguments.txt
+echo "min. viral hallmarks for circular: $CIRC_MINIMUM_DOMAINS" >> ${C_OUTDIR}/run_arguments.txt
+echo "Wrap contigs?                      $WRAP" >> ${C_OUTDIR}/run_arguments.txt
+echo "HMM db version                     $HMM_DBS" >> ${C_OUTDIR}/run_arguments.txt
+echo "ORF Caller:                        $CALLER" >> ${C_OUTDIR}/run_arguments.txt
+echo "Cenote DBs directory:              $C_DBS" >> ${C_OUTDIR}/run_arguments.txt
+echo "Cenote scripts directory:          $CENOTE_SCRIPTS" >> ${C_OUTDIR}/run_arguments.txt
+echo "Template file:                     $TEMPLATE_FILE" >> ${C_OUTDIR}/run_arguments.txt
+echo "read file(s):                      $READS" >> ${C_OUTDIR}/run_arguments.txt
+echo "HHsuite tool:                      $HHSUITE_TOOL" >> ${C_OUTDIR}/run_arguments.txt
 
-cat ${run_title}/run_arguments.txt
+cat ${C_OUTDIR}/run_arguments.txt
 
 echo " "
 
@@ -145,13 +155,13 @@ echo " "
 #- input:
 #-- ${original_contigs}
 #- output:
-#-- ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 
 if [ -s ${original_contigs} ] ; then
 	
 	seqkit seq --quiet -g -m $LENGTH_MINIMUM $original_contigs |\
 	  seqkit replace --quiet -p '^' -r ${run_title}_{nr}@#@# |\
-	  sed 's/@#@#/ /g' > ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+	  sed 's/@#@#/ /g' > ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 
 else
 	echo "${original_contigs} not found"
@@ -161,31 +171,31 @@ fi
 
 ### split contigs into equal parts for prodigal ORF calling, call ORFs
 #- input:
-#-- ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 #- output:
 #-- ${TEMP_DIR}/contig_name_map.tsv
 #-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
 
-if [ -s ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta ] ; then
+if [ -s ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta ] ; then
 	if [ ! -d "${TEMP_DIR}/ORF_orig_contigs" ]; then
 		mkdir ${TEMP_DIR}/ORF_orig_contigs
 	fi
 
 	# table with ct name and input name in separate columns
 	TABQ=$'\t'
-	grep -F ">" ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta |\
+	grep -F ">" ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta |\
 	  sed "s/ /\t/" | sed 's/>//g' > ${TEMP_DIR}/contig_name_map.tsv
 
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BRed}time update: running pyrodigal on all contigs  ${MDYT}${Color_Off}"
 
-	python ${CENOTE_SCRIPTS}/python_modules/pyrodigal_gv_runner.py ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta\
+	python ${CENOTE_SCRIPTS}/python_modules/pyrodigal_gv_runner.py ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta\
 	  ${TEMP_DIR}/ORF_orig_contigs $CPU $CALLER
 
 	seqkit split --quiet -j $CPU -p $CPU -O ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/ORF_orig_contigs/pyrodigal_gv_AAs.prod.faa
 
 else
-	echo "couldn't find ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta"
+	echo "couldn't find ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta"
 	echo "exiting"
 	exit
 fi
@@ -244,7 +254,7 @@ fi
 ### grabbing contigs with minimum marker gene number
 #- input: -#
 #-- ${TEMP_DIR}/contigs_to_keep.txt
-#-- ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 #- output: -#
 #-- ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta
 
@@ -258,7 +268,7 @@ if [ -s ${TEMP_DIR}/contigs_to_keep.txt ] ; then
 	if [ $KEEP_COUNT -ge 1 ] ; then
 
 		seqkit grep --quiet -f ${TEMP_DIR}/contigs_to_keep.txt\
-		  ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta > ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta
+		  ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta > ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta
 
 	else
 		echo "no contigs with ${KEEP_COUNT} hallmark gene(s) were detected. Exiting."
@@ -1138,7 +1148,8 @@ fi
 #--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 #--  ${TEMP_DIR}/reORF/contig_gcodes1.txt
 #- output: -#
-#--  ${run_title}/sequin_and_genome_maps/*.fsa (1 or more)
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.fsa (1 or more)
+#--  ${TEMP_DIR}/contig_to_organism.tsv
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
    [ -s ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv ] &&\
@@ -1149,9 +1160,9 @@ if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] &&\
 
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_fsas.py ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta\
 	  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv\
-	  ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${run_title}/sequin_and_genome_maps\
+	  ${TEMP_DIR}/threshold_contigs_terminal_repeat_summary.tsv ${TEMP_DIR} ${C_OUTDIR}/sequin_and_genome_maps\
 	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ${TEMP_DIR}/reORF/contig_gcodes1.txt $ISO_SOURCE\
-	  $COLLECT_DATE $META_TYPE $SRR $SRX $BIOSAMP $PRJ $MOL_TYPE $DATA_SOURCE
+	  $COLLECT_DATE $META_TYPE $SRR $SRX $BIOSAMP $PRJ $MOL_TYPE $DATA_SOURCE $GENBANK
 
 else
 
@@ -1165,9 +1176,9 @@ fi
 #--  ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv
 #--  ${TEMP_DIR}/hhpred/hhpred_report_AAs.tsv
 #- output: -#
-#--  ${run_title}/sequin_and_genome_maps/*.tbl
-#--  ${run_title}/final_ORF_list.txt
-#--  ${run_title}/final_genes_to_contigs_annotation_summary.tsv
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.tbl
+#--  ${C_OUTDIR}/final_ORF_list.txt
+#--  ${C_OUTDIR}/final_genes_to_contigs_annotation_summary.tsv
 
 
 if [ -s ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ] ; then
@@ -1176,7 +1187,7 @@ if [ -s ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv ] ; then
 	## sequin tbl
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_tbls.py ${TEMP_DIR}/contig_gene_annotation_summary.pruned.tsv\
 	  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.tRNAscan.tsv ${TEMP_DIR}/phrogs_pyhmmer/pyhmmer_report_AAs.tsv\
-	  ${TEMP_DIR}/hhpred/hhpred_report_AAs.tsv ${run_title}/sequin_and_genome_maps
+	  ${TEMP_DIR}/hhpred/hhpred_report_AAs.tsv ${C_OUTDIR}/sequin_and_genome_maps $GENBANK
 
 else
 	echo "couldn't find annotation file for tbl generation"
@@ -1185,14 +1196,14 @@ fi
 
 ### Make sequin-formatted comment (cmt) file
 #- input: -#
-#--  ${run_title}/sequin_and_genome_maps/*.fsa
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.fsa
 #--  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv
 #- output: -#
-#--  ${run_title}/sequin_and_genome_maps/*.cmt
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.cmt
 
-FSA_FILES=$( find ${run_title}/sequin_and_genome_maps -type f -name "*fsa" )
+FSA_FILES=$( find ${C_OUTDIR}/sequin_and_genome_maps -type f -name "*fsa" )
 
-if [ -n "$FSA_FILES" ] ; then
+if [ -n "$FSA_FILES" ] && [ "$GENBANK" == "True" ] ; then
 	for REC in $FSA_FILES ; do
 		if [ -s ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv ] ; then
 			COVERAGE=$( awk -v SEQNAME="${REC%.fsa}" '{OFS=FS="\t"}{ if ($1 == SEQNAME) {print $7}}' \
@@ -1215,10 +1226,10 @@ fi
 #- input: -#
 #--  ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta
 #- output: -#
-#--  ${run_title}/${run_title}_virus_sequences.fna
+#--  ${C_OUTDIR}/${run_title}_virus_sequences.fna
 
 if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] ; then
-	seqkit replace --quiet -p "\s.+" ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta > ${run_title}/${run_title}_virus_sequences.fna
+	seqkit replace --quiet -p "\s.+" ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta > ${C_OUTDIR}/${run_title}_virus_sequences.fna
 
 else
 	echo "couldn't find file for final virus seqs"
@@ -1226,75 +1237,73 @@ fi
 
 ### Merge final translated ORFs
 #- input: -#
-#--  ${run_title}/final_ORF_list.txt
+#--  ${C_OUTDIR}/final_ORF_list.txt
 #--  ${TEMP_DIR}/reORF/reORFcalled_all.faa
 #- output: -#
-#--  ${run_title}/${run_title}_virus_AA.faa
+#--  ${C_OUTDIR}/${run_title}_virus_AA.faa
 
-if [ -s ${run_title}/final_ORF_list.txt ] ; then
-	seqkit grep --quiet -f ${run_title}/final_ORF_list.txt\
-	  ${TEMP_DIR}/reORF/reORFcalled_all.faa | seqkit replace --quiet -p "\s.+" > ${run_title}/${run_title}_virus_AA.faa
+if [ -s ${C_OUTDIR}/final_ORF_list.txt ] ; then
+	seqkit grep --quiet -f ${C_OUTDIR}/final_ORF_list.txt\
+	  ${TEMP_DIR}/reORF/reORFcalled_all.faa | seqkit replace --quiet -p "\s.+" > ${C_OUTDIR}/${run_title}_virus_AA.faa
 
-	rm ${run_title}/final_ORF_list.txt
+	rm ${C_OUTDIR}/final_ORF_list.txt
 else
 	echo "couldn't find list of final ORFs"
 fi
 
 ### Run tbl2asn
 #- input: -#
-#--  ${run_title}/sequin_and_genome_maps/*.fsa
-#--  ${run_title}/sequin_and_genome_maps/*.tbl
-#--  ${run_title}/sequin_and_genome_maps/*.cmt
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.fsa
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.tbl
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.cmt
 #- output: -#
-#--  ${run_title}/sequin_and_genome_maps/*.gbf
-#--  ${run_title}/sequin_and_genome_maps/*.sqn
-#--  ${run_title}/sequin_and_genome_maps/*.val
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.gbf
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.sqn
+#--  ${C_OUTDIR}/sequin_and_genome_maps/*.val
 
-if [ -s ${TEMPLATE_FILE} ] ; then
-	tbl2asn -V vb -t ${TEMPLATE_FILE} -X C -p ${run_title}/sequin_and_genome_maps >\
-	  ${run_title}/sequin_and_genome_maps/tbl2asn.log 2>&1
+if [ -s ${TEMPLATE_FILE} ] && [ "$GENBANK" == "True" ] ; then
+	tbl2asn -V vb -t ${TEMPLATE_FILE} -X C -p ${C_OUTDIR}/sequin_and_genome_maps >\
+	  ${C_OUTDIR}/sequin_and_genome_maps/tbl2asn.log 2>&1
 else
 	echo "could not find template file for tbl2asn"
 fi
 
 ### Make run summary files
 #- input: -#
-#--  ${run_title}/final_genes_to_contigs_annotation_summary.tsv
+#--  ${C_OUTDIR}/final_genes_to_contigs_annotation_summary.tsv
 #--  ${TEMP_DIR}/contig_name_map.tsv
 #--  ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv
-#--  ${run_title}/sequin_and_genome_maps/*.fsa
 #--  ${TEMP_DIR}/reORF/contig_gcodes1.txt
 #--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+#--  ${TEMP_DIR}/contig_to_organism.tsv
 #- output: -#
-#--  ${run_title}/${run_title}_virus_summary.tsv
+#--  ${C_OUTDIR}/${run_title}_virus_summary.tsv
 #----	fields
 #----	(contig	input_name	organism	virus_seq_length	end_feature	gene_count	virion_hallmark_count
 #----	 rep_hallmark_count	virion_hallmark_genes	rep_hallmark_genes	taxonomy_hierarchy	ORF_caller)
-#--  ${run_title}/${run_title}_prune_summary.tsv
+#--  ${C_OUTDIR}/${run_title}_prune_summary.tsv
 #----	fields
 #----	(contig	contig_length	chunk_length	chunk_name	chunk_start	chunk_stop)
 
-if [ -s ${run_title}/final_genes_to_contigs_annotation_summary.tsv ] ; then
+if [ -s ${C_OUTDIR}/final_genes_to_contigs_annotation_summary.tsv ] ; then
 	MDYT=$( date +"%m-%d-%y---%T" )
 	echo -e "${BYellow}time update: Making virus summary table ${MDYT}${Color_Off}"
 
 	python ${CENOTE_SCRIPTS}/python_modules/virus_summary.py ${TEMP_DIR}/contig_name_map.tsv \
-	  ${run_title}/final_genes_to_contigs_annotation_summary.tsv ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv \
-	  ${run_title}/sequin_and_genome_maps ${run_title} ${TEMP_DIR}/reORF/contig_gcodes1.txt\
-	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt $CALLER
+	  ${C_OUTDIR}/final_genes_to_contigs_annotation_summary.tsv ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv \
+	  ${C_OUTDIR} ${run_title} ${TEMP_DIR}/reORF/contig_gcodes1.txt\
+	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt $CALLER ${TEMP_DIR}/contig_to_organism.tsv
 
 	python ${CENOTE_SCRIPTS}/python_modules/summary_statement.py\
-	  ${run_title}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta $LENGTH_MINIMUM\
-	  ${run_title}/${run_title}_virus_summary.tsv ${run_title}/${run_title}_prune_summary.tsv\
-	  ${run_title}/final_genes_to_contigs_annotation_summary.tsv $ANNOTATION_MODE
+	  ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta $LENGTH_MINIMUM\
+	  ${C_OUTDIR}/${run_title}_virus_summary.tsv ${C_OUTDIR}/${run_title}_prune_summary.tsv\
+	  ${C_OUTDIR}/final_genes_to_contigs_annotation_summary.tsv $ANNOTATION_MODE $PROPHAGE
 
 else
 	echo "couldn't find files to make run summary"
 
 fi
 
-
-# gtf/gff
 
 MDYT=$( date +"%m-%d-%y---%T" )
 echo -e "${BYellow}Cenote-Taker finishing now ${MDYT}${Color_Off}"

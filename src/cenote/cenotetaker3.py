@@ -79,11 +79,12 @@ def cenotetaker3():
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.2.0"
+    __version__ = "3.2.1"
 
     Def_CPUs = os.cpu_count()
 
-    #def runner():
+    Def_workdir = os.getcwd()
+
     parser = argparse.ArgumentParser(description='Cenote-Taker 3 is a pipeline for virus discovery \
                                     and thorough annotation of viral contigs and genomes. Visit \
                                     https://github.com/mtisza1/Cenote-Taker3 for help. \
@@ -116,6 +117,8 @@ def cenotetaker3():
     optional_args.add_argument("-am", "--annotation_mode", dest="ANNOTATION_MODE", type=str2bool, default="False", 
                             help='Default: False -- Annotate sequences only (skip discovery). Only use if you believe \
                                 each provided sequence is viral')
+    optional_args.add_argument("-wd", "--working_directory", dest="c_workdir", type=str, default=Def_workdir, 
+                            help=f"Default: {Def_workdir} -- Set working directory. run directory will be created within.")
     optional_args.add_argument("--template_file", dest="template_file", type=str, 
                             default=str(cenote_script_path) + '/dummy_template.sbt', 
                             help='Template file with some metadata. Real one required for GenBank submission. Takes a \
@@ -221,7 +224,8 @@ def cenotetaker3():
     optional_args.add_argument("--wrap", dest="WRAP", type=str2bool, default="True", 
                             help='Default: True -- Wrap/rotate DTR/circular contigs so the start codon of an ORF is \
                                 the first nucleotide in the contig/genome')
-
+    optional_args.add_argument("--genbank", dest="GENBANK", type=str2bool, default="True", 
+                            help='Default: True -- Make GenBank files (.gbf, .sqn, .fsa, .tbl, .cmt, etc)?')
 
     args = parser.parse_args()
 
@@ -236,12 +240,16 @@ def cenotetaker3():
     HALL_TYPE = ' '.join(map(str,args.HALL_LIST))
 
     ## make out directory (rename any existing directory)
-    if not os.path.isdir(str(args.run_title)):
-        os.makedirs(str(args.run_title))
+
+    out_directory = os.path.join(str(args.c_workdir), str(args.run_title))
+
+    if not os.path.isdir(out_directory):
+        os.makedirs(out_directory)
     else:
         randID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
-        os.rename(str(args.run_title), f"{str(args.run_title)}_old_{randID}")
-        os.makedirs(str(args.run_title))
+        movdir = f"{out_directory}_old_{randID}"
+        os.rename(out_directory, movdir)
+        os.makedirs(out_directory)
 
     #### define logger #####
     logger = logging.getLogger("cenote_logger")
@@ -250,7 +258,7 @@ def cenotetaker3():
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
 
-    file_handler = logging.FileHandler(os.path.join(str(args.run_title), f"{str(args.run_title)}_cenotetaker.log"))
+    file_handler = logging.FileHandler(os.path.join(out_directory, f"{str(args.run_title)}_cenotetaker.log"))
     file_handler.setLevel(logging.DEBUG)
 
     logger.addHandler(file_handler)
@@ -283,7 +291,7 @@ def cenotetaker3():
             sys.exit()
         ## checking hmm dir
         if not os.path.isdir(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))):
-            logger.warning(f"hmm db directory is not found at")
+            logger.warning(f"hmm db directory version {str(args.HMM_DBS)} is not found at")
             logger.warning(f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))}")
             logger.warning(f"looking for others in {os.path.join(str(args.C_DBS), 'hmmscan_DBs')}")
             for path, subdirs, files in os.walk(os.path.join(str(args.C_DBS), 'hmmscan_DBs')):
@@ -380,15 +388,15 @@ def cenotetaker3():
     ### run the main script
     process = Popen(['bash', str(cenote_script_path) + '/cenote_main.sh', str(cenote_script_path), 
                     str(args.original_contigs), str(args.run_title), str(args.PROPHAGE), str(args.CPU),  
-                    str(__version__), str(args.ANNOTATION_MODE), str(args.template_file),
-                    str(READS), str(args.circ_length_cutoff), str(args.linear_length_cutoff),
-                    str(args.CIRC_MINIMUM_DOMAINS), str(args.LIN_MINIMUM_DOMAINS), 
-                    str(HALL_TYPE), str(args.C_DBS), str(args.HMM_DBS), str(args.WRAP), 
-                    str(args.CALLER), str(args.HHSUITE_TOOL), 
+                    str(__version__), str(args.ANNOTATION_MODE), str(out_directory), 
+                    str(args.template_file), str(READS), str(args.circ_length_cutoff), 
+                    str(args.linear_length_cutoff), str(args.CIRC_MINIMUM_DOMAINS), 
+                    str(args.LIN_MINIMUM_DOMAINS), str(HALL_TYPE), str(args.C_DBS), str(args.HMM_DBS), 
+                    str(args.WRAP), str(args.CALLER), str(args.HHSUITE_TOOL), 
                     str(args.isolation_source), str(args.collection_date), str(args.metagenome_type), 
                     str(args.srr_number), str(args.srx_number), str(args.biosample), 
                     str(args.bioproject), str(args.ASSEMBLER), str(args.MOLECULE_TYPE), 
-                    str(args.DATA_SOURCE)],
+                    str(args.DATA_SOURCE), str(args.GENBANK)],
                     stdout=PIPE, stderr=STDOUT)
 
     with process.stdout:

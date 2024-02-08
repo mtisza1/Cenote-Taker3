@@ -43,6 +43,8 @@ MOL_TYPE = sys.argv[15]
 
 DATA_SOURCE = sys.argv[16]
 
+GENBANK = sys.argv[17]
+
 # make out dir
 if not os.path.isdir(out_dir):
     os.makedirs(out_dir)
@@ -84,6 +86,8 @@ except:
 repeat_df = pd.read_csv(repeat_file, sep = "\t")
 
 #### loop each virus
+
+desc_list = []
 for seq_record in SeqIO.parse(final_contig_file, "fasta"):
 
     #make a random alphanumeric ID 5 characters in length
@@ -131,14 +135,38 @@ for seq_record in SeqIO.parse(final_contig_file, "fasta"):
             topology = "circular"
         else:
             topology = "linear"
-
-    # here's the whole header string
-    header = (f">{str(seq_record.id)} [organism={organism} sp. ct{randID}] [gcode={gcode}] "
-        f"[topology={topology}] [note: taxonomic lineage {lineage}] [isolation_source={ISO_SOURCE}] "
-   	    f"[collection_date={COLLECT_DATE}] [metagenome_source={META_TYPE}] [SRA={SRR}] "
-        f"[note=genome binned from sequencing reads available in {SRX}] [Biosample={BIOSAMP}] "
-        f"[Bioproject={PRJ}] [moltype={MOL_TYPE}] [isolation_source={DATA_SOURCE}]")
     
-    seq_output_file = os.path.join(out_dir, str(seq_record.id) + ".fsa")
+    if GENBANK == 'True':
+        # here's the whole header string
+        header = (f">{str(seq_record.id)} [organism={organism} sp. ct{randID}] [gcode={gcode}] "
+            f"[topology={topology}] [note: taxonomic lineage {lineage}] [isolation_source={ISO_SOURCE}] "
+            f"[collection_date={COLLECT_DATE}] [metagenome_source={META_TYPE}] [SRA={SRR}] "
+            f"[note=genome binned from sequencing reads available in {SRX}] [Biosample={BIOSAMP}] "
+            f"[Bioproject={PRJ}] [moltype={MOL_TYPE}] [isolation_source={DATA_SOURCE}]")
+        
+        seq_output_file = os.path.join(out_dir, str(seq_record.id) + ".fsa")
 
-    print(f"{header}\n{seq_record.seq}", file = open(seq_output_file, "a"))
+        print(f"{header}\n{seq_record.seq}", file = open(seq_output_file, "a"))
+
+    ## add outtable with contig, chunk, organism name (full)
+    try:
+        if "@" in seq_record.id:
+            contig = seq_record.id.split("@")[0]
+            chunkq = seq_record.id.split("@")[1]
+        else:
+            contig = seq_record.id
+            chunkq = None
+
+        fullorg = f'{organism} sp. ct{randID}'
+
+        desc_list.append([contig, chunkq, fullorg])
+    except:
+        print(f"{os.path.basename(__file__)}: seq record info parse failed.")
+
+
+desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
+
+if not desc_df.empty:
+    org_output_file = os.path.join(temp_dir, "contig_to_organism.tsv")
+
+    desc_df.to_csv(org_output_file, sep = "\t", index = False)

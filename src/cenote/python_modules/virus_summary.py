@@ -18,8 +18,8 @@ name_table = sys.argv[1]
 gene_to_contig_table = sys.argv[2]
 # taxonomy file
 tax_table = sys.argv[3]
-# directory for sequin related files
-sequin_dir = sys.argv[4]
+# main run directory
+main_dir = sys.argv[4]
 # run title
 run_title = sys.argv[5]
 # prodigal gcodes file
@@ -28,6 +28,8 @@ prod_gcodes = sys.argv[6]
 phan_file = sys.argv[7]
 #ORFcaller arg
 caller_arg = sys.argv[8]
+# contig-to-organism table
+org_table = sys.argv[9]
 
 try:
     main_annot_df = pd.read_csv(gene_to_contig_table, sep = "\t")
@@ -67,58 +69,34 @@ for df in phan_df, prod_df:
 try:
     gcode_df = pd.concat(gcode_list, ignore_index=True)
 except:
-    print("nope")
+    print(f"{os.path.basename(__file__)}: couldn't load gcode table")
 
 
 ## merge all files
 merge_df = pd.merge(main_annot_df, name_df, on = "contig", how = "left")
 
-tax_df['chunk_name'] = tax_df['chunk_name'].fillna("NaN")
-merge_df['chunk_name'] = merge_df['chunk_name'].fillna("NaN")
+tax_df['chunk_name'] = tax_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+merge_df['chunk_name'] = merge_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
 
 merge_df = pd.merge(merge_df, tax_df, on = ["contig", "chunk_name"], how = "left")
 merge_df = pd.merge(merge_df, gcode_df, on = "contig", how = "left")
 
-merge_df['taxon'] = merge_df['taxon'].fillna("unclassified virus")
+merge_df['taxon'] = merge_df['taxon'].infer_objects(copy=False).fillna("unclassified virus")
 
 
 ## get descriptions from fastas
-finalseq_list = []
-for fsa in os.listdir(sequin_dir):
-    if fsa.endswith('.fsa'):
-        f = os.path.join(sequin_dir, fsa)
 
-        if os.path.isfile(f) and os.path.getsize(f) > 0:
-            finalseq_list.append(f)
+try:
+    desc_df = pd.read_csv(org_table, sep = "\t")
+except:
+    desc_df = pd.DataFrame()
+    print(f"{os.path.basename(__file__)}: couldn't load contig-to-organism table")
 
-if not finalseq_list:
-    print(f"{os.path.basename(__file__)}: no files found for seqIO parse " + str(sequin_dir))
-    sys.exit()
-
-
-desc_list = []
-for seq_file in finalseq_list:
-    seq_record = SeqIO.read(seq_file, "fasta")
-    try:
-        if "@" in seq_record.id:
-            contig = seq_record.id.split("@")[0]
-            chunkq = seq_record.id.split("@")[1]
-        else:
-            contig = seq_record.id
-            chunkq = None
-        fields = re.findall(r'\[.*?\]', seq_record.description)
-        organism = re.search(r'\[organism=(.*?)\]', fields[0]).group(1)
-        #gcode = re.search(r'\[gcode=(.*?)\]', fields[1]).group(1)
-        desc_list.append([contig, chunkq, organism])
-    except:
-        print(f"{os.path.basename(__file__)}: seq record info parse failed.")
-
-desc_df = pd.DataFrame(desc_list, columns=["contig", "chunk_name", "organism"])
 
 
 ## ensure merge gets same data type
-desc_df['chunk_name'] = desc_df['chunk_name'].fillna("NaN")
-merge_df['chunk_name'] = merge_df['chunk_name'].fillna("NaN")
+desc_df['chunk_name'] = desc_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+merge_df['chunk_name'] = merge_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
 
 
 org_info_df = pd.merge(merge_df, desc_df, on = ["contig", "chunk_name"], how = "left")
@@ -172,13 +150,11 @@ summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organi
                                                  'RDRP_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
 
 
-summary_df['virus_seq_length'] = summary_df['virus_seq_length'].fillna(0)
+summary_df['virus_seq_length'] = summary_df['virus_seq_length'].infer_objects(copy=False).fillna(0)
 
 summary_df = summary_df.astype(dtype= {"virus_seq_length": "int64"})
 
-parentpath = Path(sequin_dir).parents[0]
-
-summary_out = os.path.join(parentpath, f"{run_title}_virus_summary.tsv")
+summary_out = os.path.join(main_dir, f"{run_title}_virus_summary.tsv")
 
 summary_df.to_csv(summary_out, sep = "\t", index = False)
 
@@ -193,6 +169,6 @@ prune_sum_df = prune_sum_df.astype(dtype= {"contig_length": "int64", "chunk_leng
                                            "chunk_start": "int64", "chunk_stop": "int64"})
 
 if not prune_sum_df.empty:
-    prune_out = os.path.join(parentpath, f"{run_title}_prune_summary.tsv")
+    prune_out = os.path.join(main_dir, f"{run_title}_prune_summary.tsv")
 
     prune_sum_df.to_csv(prune_out, sep = "\t", index = False)

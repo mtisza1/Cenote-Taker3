@@ -32,18 +32,37 @@ for hhresult_file in hhrout_list:
             #with this logic, only files with results (lines starting with >) append the df
             if line.startswith('>'):
                 full_desc = line.rstrip('\n').strip('>')
+
+                ## CDD models
                 if line.startswith('>cd') or line.startswith('>sd'):
                     accession = full_desc.split(' ')[0]
 
                     try:
-                        annotation = full_desc.split('; ')[1].split('. ')[0]
+                        #annotation = full_desc.split('; ')[1].split('. ')[0]
+                        annotation = full_desc.split(' ')[1].split(';')[0]
                     except:
                         annotation = 'hypothetical protein'
-                else:
+
+                ## PFAM models
+                elif line.startswith('>PF'):
                     accession = full_desc.split(' ; ')[0]
 
                     try:
                         annotation = full_desc.split('; ')[2]
+                    except:
+                        annotation = 'hypothetical protein'
+
+                ## PDB models
+                else:
+                    accession = full_desc.split(' ')[0]
+
+                    try:
+                        annotationpd = full_desc.split(' ')[1:]
+                        annotationpd = ' '.join(annotationpd)
+                        if ']' in annotationpd:
+                            annotation = annotationpd.split(']')[1].split(';')[0]
+                        else:
+                            annotation = annotationpd.split(';')[0]
                     except:
                         annotation = 'hypothetical protein'
 

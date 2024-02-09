@@ -150,56 +150,6 @@ cat ${C_OUTDIR}/run_arguments.txt
 
 echo " "
 
-
-### filtering input contigs by minimum length and renaming for cenote-taker
-#- input:
-#-- ${original_contigs}
-#- output:
-#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
-
-if [ -s ${original_contigs} ] ; then
-	
-	seqkit seq --quiet -g -m $LENGTH_MINIMUM $original_contigs |\
-	  seqkit replace --quiet -p '^' -r ${run_title}_{nr}@#@# |\
-	  sed 's/@#@#/ /g' > ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
-
-else
-	echo "${original_contigs} not found"
-	exit
-fi
-
-
-### split contigs into equal parts for prodigal ORF calling, call ORFs
-#- input:
-#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
-#- output:
-#-- ${TEMP_DIR}/contig_name_map.tsv
-#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
-
-if [ -s ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta ] ; then
-	if [ ! -d "${TEMP_DIR}/ORF_orig_contigs" ]; then
-		mkdir ${TEMP_DIR}/ORF_orig_contigs
-	fi
-
-	# table with ct name and input name in separate columns
-	TABQ=$'\t'
-	grep -F ">" ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta |\
-	  sed "s/ /\t/" | sed 's/>//g' > ${TEMP_DIR}/contig_name_map.tsv
-
-	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BRed}time update: running pyrodigal on all contigs  ${MDYT}${Color_Off}"
-
-	python ${CENOTE_SCRIPTS}/python_modules/pyrodigal_gv_runner.py ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta\
-	  ${TEMP_DIR}/ORF_orig_contigs $CPU $CALLER
-
-	seqkit split --quiet -j $CPU -p $CPU -O ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/ORF_orig_contigs/pyrodigal_gv_AAs.prod.faa
-
-else
-	echo "couldn't find ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta"
-	echo "exiting"
-	exit
-fi
-
 ### set minimum hallmark genes
 if [ $CIRC_MINIMUM_DOMAINS -gt $LIN_MINIMUM_DOMAINS ] ; then
 	HALLMARK_MINIMUM=$LIN_MINIMUM_DOMAINS
@@ -207,48 +157,117 @@ else
 	HALLMARK_MINIMUM=$CIRC_MINIMUM_DOMAINS
 fi
 
-### run pyhmmer on prodigal ORF files, virion DB and rep DB
-#- input: -#
-#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
-#- output: -#
-#-- ${TEMP_DIR}/orig_pyhmmer_virion/contig_hit_count.tsv
-#---- 	fields
-#---- 	(contig	count)
-#-- ${TEMP_DIR}/orig_pyhmmer_virion/pyhmmer_report_AAs.tsv
-#--- 	fields
-#--- 	(ORFquery	contig	target	evalue	pvalue)
-#-- ${TEMP_DIR}/orig_pyhmmer_rep/contig_hit_count.tsv
-#---- 	fields
-#---- 	(contig	count)
-#-- ${TEMP_DIR}/orig_pyhmmer_rep/pyhmmer_report_AAs.tsv
-#----	fields
-#----	(ORFquery	contig	target	evalue	pvalue)
-#-- ${TEMP_DIR}/contigs_to_keep.txt
-#-- ${TEMP_DIR}/hallmarks_per_orig_contigs.tsv
-#-- ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt
+### filtering input contigs by minimum length and renaming for cenote-taker
+#- input:
+#-- ${original_contigs}
+#- output:
+#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+#-- ${TEMP_DIR}/contig_name_map.tsv
 
-SPLIT_ORIG_AAs=$( find ${TEMP_DIR}/ORF_orig_contigs/split -type f -name "*.faa" )
+if [ -s ${original_contigs} ] ; then
+	
+	seqkit seq --quiet -g -m $LENGTH_MINIMUM $original_contigs |\
+	  seqkit replace --quiet -p '^' -r ${run_title}_{nr}@#@# |\
+	  sed 's/@#@#/ /g' > ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
 
-if [ -n "$SPLIT_ORIG_AAs" ] ; then
-
-	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BRed}time update: running pyhmmer on all ORFs  ${MDYT}${Color_Off}"
-
-	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_virion\
-	  ${C_DBS}/hmmscan_DBs/${HMM_DBS}/Virion_HMMs.h3m $CPU 1e-7 0.1
-
-	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_rep\
-	  ${C_DBS}/hmmscan_DBs/${HMM_DBS}/DNA_rep_HMMs.h3m $CPU 1e-7 0.1
-
-	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_rdrp\
-	  ${C_DBS}/hmmscan_DBs/${HMM_DBS}/RDRP_HMMs.h3m $CPU 1e-7 0.8
-
-	python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
-	  ${TEMP_DIR}/orig_pyhmmer_rep ${TEMP_DIR}/orig_pyhmmer_rdrp ${HALLMARK_MINIMUM} "${HALL_TYPE}" ${TEMP_DIR} ${TEMP_DIR}/contig_name_map.tsv
+	# table with ct name and input name in separate columns
+	#TABQ=$'\t'
+	grep -F ">" ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta |\
+	  sed "s/ /\t/" | sed 's/>//g' > ${TEMP_DIR}/contig_name_map.tsv 
 
 else
-	echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/ORF_orig_contigs/split"
+	echo "${original_contigs} not found"
+	exit
 fi
+
+#~~# skip preliminary pyhmmer/filtering if using annotation mode and not using adaptive ORF calling
+
+if [ "$ANNOTATION_MODE" == "False" ] || [ "$CALLER" == "adaptive" ] ; then
+	### split contigs into equal parts for prodigal ORF calling, call ORFs
+	#- input:
+	#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+	#- output:
+	#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
+
+	if [ -s ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta ] ; then
+		if [ ! -d "${TEMP_DIR}/ORF_orig_contigs" ]; then
+			mkdir ${TEMP_DIR}/ORF_orig_contigs
+		fi
+
+		MDYT=$( date +"%m-%d-%y---%T" )
+		echo -e "${BRed}time update: running pyrodigal on all contigs  ${MDYT}${Color_Off}"
+
+		python ${CENOTE_SCRIPTS}/python_modules/pyrodigal_gv_runner.py ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta\
+		  ${TEMP_DIR}/ORF_orig_contigs $CPU $CALLER
+
+		seqkit split --quiet -j $CPU -p $CPU -O ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/ORF_orig_contigs/pyrodigal_gv_AAs.prod.faa
+
+	else
+		echo "couldn't find ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta"
+		echo "exiting"
+		exit
+	fi
+
+
+	### run pyhmmer on prodigal ORF files, virion DB and rep DB
+	#- input: -#
+	#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
+	#- output: -#
+	#-- ${TEMP_DIR}/orig_pyhmmer_virion/contig_hit_count.tsv
+	#---- 	fields
+	#---- 	(contig	count)
+	#-- ${TEMP_DIR}/orig_pyhmmer_virion/pyhmmer_report_AAs.tsv
+	#--- 	fields
+	#--- 	(ORFquery	contig	target	evalue	pvalue)
+	#-- ${TEMP_DIR}/orig_pyhmmer_rep/contig_hit_count.tsv
+	#---- 	fields
+	#---- 	(contig	count)
+	#-- ${TEMP_DIR}/orig_pyhmmer_rep/pyhmmer_report_AAs.tsv
+	#----	fields
+	#----	(ORFquery	contig	target	evalue	pvalue)
+	#-- ${TEMP_DIR}/contigs_to_keep.txt #%%# I may need to generate this for -am
+	#-- ${TEMP_DIR}/hallmarks_per_orig_contigs.tsv #%%# I may need to generate this for -am
+	#-- ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt
+
+	SPLIT_ORIG_AAs=$( find ${TEMP_DIR}/ORF_orig_contigs/split -type f -name "*.faa" )
+
+	if [ -n "$SPLIT_ORIG_AAs" ] ; then
+
+		MDYT=$( date +"%m-%d-%y---%T" )
+		echo -e "${BRed}time update: running pyhmmer on all ORFs  ${MDYT}${Color_Off}"
+
+		python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_virion\
+		  ${C_DBS}/hmmscan_DBs/${HMM_DBS}/Virion_HMMs.h3m $CPU 1e-7 0.1
+
+		python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_rep\
+		  ${C_DBS}/hmmscan_DBs/${HMM_DBS}/DNA_rep_HMMs.h3m $CPU 1e-7 0.1
+
+		python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/ORF_orig_contigs/split ${TEMP_DIR}/orig_pyhmmer_rdrp\
+		  ${C_DBS}/hmmscan_DBs/${HMM_DBS}/RDRP_HMMs.h3m $CPU 1e-7 0.8
+
+		python ${CENOTE_SCRIPTS}/python_modules/combine_hallmark_counts.py ${TEMP_DIR}/orig_pyhmmer_virion\
+		  ${TEMP_DIR}/orig_pyhmmer_rep ${TEMP_DIR}/orig_pyhmmer_rdrp ${HALLMARK_MINIMUM} "${HALL_TYPE}" \
+		  ${TEMP_DIR} ${TEMP_DIR}/contig_name_map.tsv
+
+	else
+		echo "couldn't find prodigal AA seqs in ${TEMP_DIR}/ORF_orig_contigs/split"
+	fi
+
+else
+	### make mock files if in annotation mode
+	#- input: -#
+	#-- ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta
+	#- output: -#
+	#-- ${TEMP_DIR}/contigs_to_keep.txt #%%# I may need to generate this for -am
+	#-- ${TEMP_DIR}/hallmarks_per_orig_contigs.tsv #%%# I may need to generate this for -am
+	echo ""
+	seqkit fx2tab --quiet -i -n ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta > ${TEMP_DIR}/contigs_to_keep.txt
+
+	awk '{OFS=FS="\t"} NR==1 {print "contig", "virion_hit_count", "rep_hit_count", "rdrp_hit_count", "total_hit_count"} {print $0, 0, 0, 0, 0}'\
+	  ${TEMP_DIR}/contigs_to_keep.txt > ${TEMP_DIR}/hallmarks_per_orig_contigs.tsv
+
+fi
+#~~# end of conditional first pyhmmer/filtering
 
 
 ### grabbing contigs with minimum marker gene number
@@ -413,27 +432,24 @@ fi
 
 ### evaluate ORF caller argument
 
-if [ $CALLER == "prodigal" ] || [ $CALLER == "prodigal-gv" ] || [ $CALLER == "phanotate" ] ; then
-	#- input: -#
-	#-- ${TEMP_DIR}/contigs_to_keep.txt
-	#- output: -#
-	#-- ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
-	#-- ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
-	echo "forcing final ORF calls to be $CALLER"
+#- input: -#
+#-- ${TEMP_DIR}/contigs_to_keep.txt
+#- output: -#
+#-- ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
+#-- ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
+echo "forcing final ORF calls to be $CALLER"
 
-	if [ $CALLER == "prodigal" ] || [ $CALLER == "prodigal-gv" ] ; then
+if [ $CALLER == "prodigal" ] || [ $CALLER == "prodigal-gv" ] ; then
 
-		cp ${TEMP_DIR}/contigs_to_keep.txt ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
+	cp ${TEMP_DIR}/contigs_to_keep.txt ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt
 
-	elif [ $CALLER == "phanotate" ] ; then
+elif [ $CALLER == "phanotate" ] ; then
 
-		cp ${TEMP_DIR}/contigs_to_keep.txt ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
-
-	fi
+	cp ${TEMP_DIR}/contigs_to_keep.txt ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 
 else
 
-	### blastp-style mmseqs hallmark genes for taxonomy
+	### blastp-style mmseqs hallmark genes for taxonomy (adaptive caller)
 	#- input: -#
 	#-- ${TEMP_DIR}/hallmarks_for_keepcontigs1.txt
 	#-- ${TEMP_DIR}/ORF_orig_contigs/split/*.faa (1 or more)
@@ -501,7 +517,12 @@ fi
 ## redo ORF calls for everything. Some need phanotate, some were rotated
 if [ -s ${TEMP_DIR}/hallmark_tax/prodigal_seqs1.txt ] || [ -s ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt ] ; then
 	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BBlue}redoing ORF calls for each sequence ${MDYT}${Color_Off}"
+
+	if [ "$ANNOTATION_MODE" == "False" ] ; then
+		echo -e "${BBlue}redoing ORF calls for each sequence ${MDYT}${Color_Off}"
+	else
+		echo -e "${BBlue}making ORF calls for each sequence ${MDYT}${Color_Off}"
+	fi
 
 
 	## adding contigs that had no hits in mmseqs search to list of contigs that need prodigal ORF calling
@@ -681,7 +702,7 @@ SPLIT_REORF_AAs=$( find ${TEMP_DIR}/reORF_pyhmmer1_split -type f -name "*.faa" )
 if [ -n "$SPLIT_REORF_AAs" ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BCyan}time update: running pyhmmer hallmark dbs on reORFs ${MDYT}${Color_Off}"
+	echo -e "${BCyan}time update: running pyhmmer hallmark dbs on final ORFs ${MDYT}${Color_Off}"
 
 	if [ ! -d ${TEMP_DIR}/virion_reORF_pyhmmer ]; then
 		mkdir ${TEMP_DIR}/virion_reORF_pyhmmer
@@ -761,7 +782,7 @@ SECOND_REORF_AAs=$( find ${TEMP_DIR}/reORF_pyhmmer2_split -type f ! -size 0 -nam
 if [ -n "$SECOND_REORF_AAs" ] ; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BCyan}time update: running pyhmmer additional annotation HMMs on reORFs ${MDYT}${Color_Off}"
+	echo -e "${BCyan}time update: running pyhmmer additional annotation HMMs on final ORFs ${MDYT}${Color_Off}"
 
 
 	python ${CENOTE_SCRIPTS}/python_modules/pyhmmer_runner.py ${TEMP_DIR}/reORF_pyhmmer2_split ${TEMP_DIR}/comm_reORF_pyhmmer\
@@ -936,7 +957,7 @@ fi
 if [ -s ${TEMP_DIR}/hypothetical_proteins.after_chunk.txt ]; then
 
 	MDYT=$( date +"%m-%d-%y---%T" )
-	echo -e "${BRed}time update: running pyhmmer on PHROGs HMMs on reORFs ${MDYT}${Color_Off}"
+	echo -e "${BRed}time update: running pyhmmer on PHROGs HMMs on final ORFs ${MDYT}${Color_Off}"
 
 	if [ ! -d ${TEMP_DIR}/reORF_phrogs_split ] ; then
 		mkdir ${TEMP_DIR}/reORF_phrogs_split

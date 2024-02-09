@@ -135,7 +135,7 @@ def taxon_decider(name, group, taxonomy_list):
 
         
     try:
-        lineage_to_tax_S = np.where(group['taxlineage'].str.contains(taxonomy), 
+        lineage_to_tax_S = np.where(group['taxlineage'].str.contains(f'_{taxonomy}'), 
                                      group['taxlineage'].apply(lambda st: st[:st.find(taxonomy)+len(taxonomy)]), 
                                      taxonomy)
     

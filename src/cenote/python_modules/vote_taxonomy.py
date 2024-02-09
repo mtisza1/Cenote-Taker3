@@ -139,7 +139,8 @@ def taxon_decider(name, group, taxonomy_list):
                                      group['taxlineage'].apply(lambda st: st[:st.find(taxonomy)+len(taxonomy)]), 
                                      taxonomy)
     
-        lineage_to_tax = lineage_to_tax_S[0]
+        #lineage_to_tax = lineage_to_tax_S[0]
+        lineage_to_tax = pd.Series(lineage_to_tax_S).agg(pd.Series.mode)[0]
     except:
         lineage_to_tax = "NA"
     

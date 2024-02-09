@@ -118,7 +118,8 @@ def cenotetaker3():
                             help='Default: False -- Annotate sequences only (skip discovery). Only use if you believe \
                                 each provided sequence is viral')
     optional_args.add_argument("-wd", "--working_directory", dest="c_workdir", type=str, default=Def_workdir, 
-                            help=f"Default: {Def_workdir} -- Set working directory. run directory will be created within.")
+                            help=f"Default: {Def_workdir} -- Set working directory with absolute or relative path. \
+                                run directory will be created within.")
     optional_args.add_argument("--template_file", dest="template_file", type=str, 
                             default=str(cenote_script_path) + '/dummy_template.sbt', 
                             help='Template file with some metadata. Real one required for GenBank submission. Takes a \

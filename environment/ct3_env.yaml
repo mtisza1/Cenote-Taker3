@@ -22,3 +22,4 @@ dependencies:
   - sed
   - grep
   - samtools
+  - pyarrow

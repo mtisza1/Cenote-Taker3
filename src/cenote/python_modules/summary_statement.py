@@ -14,6 +14,7 @@ vir_sum = sys.argv[3]
 prune_sum = sys.argv[4]
 genes_sum = sys.argv[5]
 ann_mode = sys.argv[6]
+prune = sys.argv[7]
 
 ###
 
@@ -50,6 +51,8 @@ else:
             f'searched and {pc}{num_virus_contigs}{lc} viruses were detected and annotated.{endc}')
       print(f'>>> {lc}In all, {pc}{nonhypo_genes / all_genes:.0%}{lc} of '
             f'virus genes were annotated with functional information.{endc}')
-      print(f'>>> {pc}{over_10kb}{lc} contig(s) over 10kb went through pruning module '
-            f'and {pc}{pruned_seqs}{lc} were shortened by pruning.{endc}')
+      if prune == 'True':
+            print(f'>>> {pc}{over_10kb}{lc} contig(s) over 10kb went through pruning module '
+                  f'and {pc}{pruned_seqs}{lc} were shortened by pruning.{endc}')
+
 print('')

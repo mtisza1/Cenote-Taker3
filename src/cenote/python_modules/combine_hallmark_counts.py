@@ -63,7 +63,7 @@ names_dt = pd.read_csv(names_file, sep = "\t", names=['contig', 'original_name']
 
 merge_dt = pd.merge(hits_dt, names_dt, on = 'contig', how = 'outer')
 
-merge_dt = merge_dt.fillna(0)
+merge_dt = merge_dt.infer_objects(copy=False).fillna(0)
 
 
 

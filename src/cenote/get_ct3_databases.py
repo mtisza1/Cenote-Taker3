@@ -117,39 +117,39 @@ def get_ct3_dbs():
 
     if str(args.HHCDD) == "True":
         print ("running hhsuite CDD database update/install")
-        subprocess.call(['rm', '-r', '-f', str(args.C_DBS) + '/NCBI_CD/'])
-        isExist = os.path.exists(str(args.C_DBS) + '/NCBI_CD')
+        subprocess.call(['rm', '-r', '-f', str(args.C_DBS) + '/hhsearch_DBs/NCBI_CD/'])
+        isExist = os.path.exists(str(args.C_DBS) + '/hhsearch_DBs/NCBI_CD')
         if not isExist:
-            os.makedirs(str(args.C_DBS) + '/NCBI_CD/', exist_ok=True)
-        subprocess.call(['wget', '--directory-prefix=' + str(args.C_DBS), 
+            os.makedirs(str(args.C_DBS) + '/hhsearch_DBs/NCBI_CD/', exist_ok=True)
+        subprocess.call(['wget', '--directory-prefix=' + str(args.C_DBS) + '/hhsearch_DBs', 
                          'https://zenodo.org/records/3660537/files/NCBI_CD_hhsuite.tgz'])
-        subprocess.call(['tar', '-xvf', f'{str(args.C_DBS)}/NCBI_CD_hhsuite.tgz', 
-                         '--directory', str(args.C_DBS)])
-        subprocess.call(['rm', '-f', f'{str(args.C_DBS)}/NCBI_CD_hhsuite.tgz'])
+        subprocess.call(['tar', '-xvf', f'{str(args.C_DBS)}/hhsearch_DBs/NCBI_CD_hhsuite.tgz', 
+                         '--directory', str(args.C_DBS) + '/hhsearch_DBs'])
+        subprocess.call(['rm', '-f', f'{str(args.C_DBS)}/hhsearch_DBs/NCBI_CD_hhsuite.tgz'])
 
     if str(args.HHPFAM) == "True":
         print ("running PFAM database update/install")
-        subprocess.call(['rm', '-r', '-f', str(args.C_DBS) + '/pfam_32_db/'])
-        isExist = os.path.exists(str(args.C_DBS) + '/pfam_32_db')
+        subprocess.call(['rm', '-r', '-f', str(args.C_DBS) + '/hhsearch_DBs/pfam_32_db/'])
+        isExist = os.path.exists(str(args.C_DBS) + '/hhsearch_DBs/pfam_32_db')
         if not isExist:
-            os.makedirs(str(args.C_DBS) + '/pfam_32_db/', exist_ok=True)
-        subprocess.call(['wget', '--directory-prefix=' + str(args.C_DBS), 
+            os.makedirs(str(args.C_DBS) + '/hhsearch_DBs/pfam_32_db/', exist_ok=True)
+        subprocess.call(['wget', '--directory-prefix=' + str(args.C_DBS) + '/hhsearch_DBs', 
                          'http://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pfamA_32.0.tar.gz'])
-        subprocess.call(['tar', '-xvf', f'{str(args.C_DBS)}/pfamA_32.0.tar.gz', 
-                         '--directory', str(args.C_DBS) + '/pfam_32_db'])
-        subprocess.call(['rm', '-f', f'{str(args.C_DBS)}/pfamA_32.0.tar.gz'])
+        subprocess.call(['tar', '-xvf', f'{str(args.C_DBS)}/hhsearch_DBs/pfamA_32.0.tar.gz', 
+                         '--directory', str(args.C_DBS) + '/hhsearch_DBs/pfam_32_db'])
+        subprocess.call(['rm', '-f', f'{str(args.C_DBS)}/hhsearch_DBs/pfamA_32.0.tar.gz'])
 
     if str(args.HHPDB) == "True":
         print ("running PDB database update/install. This could take around 2 hours.")
-        subprocess.call(['rm', '-r', '-f', str(args.C_DBS) + '/pdb70/'])
-        isExist = os.path.exists(str(args.C_DBS) + '/pdb70')
+        subprocess.call(['rm', '-r', '-f', str(args.C_DBS) + '/hhsearch_DBs/pdb70/'])
+        isExist = os.path.exists(str(args.C_DBS) + '/hhsearch_DBs/pdb70')
         if not isExist:
-            os.makedirs(str(args.C_DBS) + '/pdb70/', exist_ok=True)
-        subprocess.call(['wget', '--directory-prefix=' + str(args.C_DBS), 
+            os.makedirs(str(args.C_DBS) + '/hhsearch_DBs/pdb70/', exist_ok=True)
+        subprocess.call(['wget', '--directory-prefix=' + str(args.C_DBS) + '/hhsearch_DBs', 
                          'http://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70_from_mmcif_latest.tar.gz'])
-        subprocess.call(['tar', '-xvf', f'{str(args.C_DBS)}/pdb70_from_mmcif_latest.tar.gz', 
-                         '--directory', str(args.C_DBS) + '/pdb70'])
-        subprocess.call(['rm', '-f', f'{str(args.C_DBS)}/pdb70_from_mmcif_latest.tar.gz'])
+        subprocess.call(['tar', '-xvf', f'{str(args.C_DBS)}/hhsearch_DBs/pdb70_from_mmcif_latest.tar.gz', 
+                         '--directory', str(args.C_DBS) + '/hhsearch_DBs/pdb70'])
+        subprocess.call(['rm', '-f', f'{str(args.C_DBS)}/hhsearch_DBs/pdb70_from_mmcif_latest.tar.gz'])
 
 if __name__ == "__main__":
     get_ct3_dbs()

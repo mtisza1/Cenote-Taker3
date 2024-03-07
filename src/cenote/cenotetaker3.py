@@ -289,7 +289,7 @@ def cenotetaker3():
     if args.TAXDB == 'refseq':
         TAXDBV = 'refseq_virus_prot_taxDB'
     elif args.TAXDB == 'nr90':
-        TAXDBV = 'ct3_hallmark_nr_virus.cd90.1.taxDB'
+        TAXDBV = 'ct3_hallmark_nr_virus.cd90.taxDB'
     
 
     ## check that all DBs exist

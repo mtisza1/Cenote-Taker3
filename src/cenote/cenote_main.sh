@@ -33,6 +33,7 @@ ASSEMBLER=${28}
 MOL_TYPE=${29}
 DATA_SOURCE=${30}
 GENBANK=${31}
+TAXDBV=${32}
 
 ### check output directory (created in cenotetaker3.py)
 
@@ -472,11 +473,11 @@ else
 			mmseqs createdb ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB -v 1
 
 			mmseqs search ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
-			  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+			  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 			  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/tmp -v 1 --start-sens 1 --sens-steps 3 -s 7
 
 			mmseqs convertalis ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
-			  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+			  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 			  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv\
 			  --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
 
@@ -1133,11 +1134,11 @@ if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 		mmseqs createdb ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa ${TEMP_DIR}/final_taxonomy/hallmark_proteinsDB -v 1
 
 		mmseqs search ${TEMP_DIR}/final_taxonomy/hallmark_proteinsDB\
-		  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+		  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 		  ${TEMP_DIR}/final_taxonomy/hallmark_proteins_resDB ${TEMP_DIR}/final_taxonomy/tmp -v 1 --start-sens 1 --sens-steps 3 -s 7
 
 		mmseqs convertalis ${TEMP_DIR}/final_taxonomy/hallmark_proteinsDB\
-		  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+		  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 		  ${TEMP_DIR}/final_taxonomy/hallmark_proteins_resDB ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv\
 		  --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
 

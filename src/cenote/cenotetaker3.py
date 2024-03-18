@@ -230,7 +230,9 @@ def cenotetaker3():
     optional_args.add_argument("--taxdb", dest="TAXDB", type=str, choices=['refseq', 'nr90'],
                             default='nr90', 
                             help='Default: nr90 -- Which taxonomy database to use, refseq virus OR nr clustered at 90 percent AAI and filtered down to virus hallmark genes')
-
+    optional_args.add_argument("--seqtech", dest="SEQTECH", type=str,
+                            default='Illumina', 
+                            help='Default: Illumina -- Which sequencing technology produced the reads?')
     args = parser.parse_args()
 
     ## annotation mode overrides other arguments
@@ -407,7 +409,7 @@ def cenotetaker3():
                     str(args.isolation_source), str(args.collection_date), str(args.metagenome_type), 
                     str(args.srr_number), str(args.srx_number), str(args.biosample), 
                     str(args.bioproject), str(args.ASSEMBLER), str(args.MOLECULE_TYPE), 
-                    str(args.DATA_SOURCE), str(args.GENBANK), str(TAXDBV)],
+                    str(args.DATA_SOURCE), str(args.GENBANK), str(TAXDBV), str(args.SEQTECH)],
                     stdout=PIPE, stderr=STDOUT)
 
     with process.stdout:

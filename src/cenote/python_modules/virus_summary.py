@@ -30,6 +30,8 @@ phan_file = sys.argv[7]
 caller_arg = sys.argv[8]
 # contig-to-organism table
 org_table = sys.argv[9]
+# samtools coverage table
+samcov_table = sys.argv[10]
 
 try:
     main_annot_df = pd.read_csv(gene_to_contig_table, sep = "\t")
@@ -71,6 +73,24 @@ try:
 except:
     print(f"{os.path.basename(__file__)}: couldn't load gcode table")
 
+## samtools coverage table for coverage info
+try:
+    sam_df = pd.read_csv(samcov_table, sep = "\t", header = 0)[['#rname', 'coverage']]
+
+    if (sam_df['#rname'].str.contains('@')).any():
+        sam_df[['contig', 'chunk_name']] = sam_df['#rname'].str.split('@', n=1, expand=True)
+
+    else:
+        sam_df['contig'] = sam_df['#rname']
+        sam_df['chunk_name'] = "NaN"
+
+    sam_df = sam_df[['contig', 'chunk_name', 'coverage']]
+
+    sam_df['chunk_name'] = sam_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+except Exception as e:
+    sam_df = pd.DataFrame()
+
+
 
 ## merge all files
 merge_df = pd.merge(main_annot_df, name_df, on = "contig", how = "left")
@@ -80,6 +100,11 @@ merge_df['chunk_name'] = merge_df['chunk_name'].infer_objects(copy=False).fillna
 
 merge_df = pd.merge(merge_df, tax_df, on = ["contig", "chunk_name"], how = "left")
 merge_df = pd.merge(merge_df, gcode_df, on = "contig", how = "left")
+
+if not sam_df.empty:
+    merge_df = pd.merge(merge_df, sam_df, on = ["contig", "chunk_name"], how = "left")
+else:
+    merge_df['coverage'] = 0
 
 merge_df['taxon'] = merge_df['taxon'].infer_objects(copy=False).fillna("unclassified virus")
 
@@ -108,7 +133,7 @@ org_info_df['chunk_length'] = np.where(org_info_df['chunk_length'].isnull(),
 ## make summary of virus seqs
 grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'chunk_name', 
                      'input_name', 'taxon', 'taxonomy_hierarchy', 'taxon_level',
-                     'avg_hallmark_AAI_to_ref', 'organism', 'gcode', 'ORFcaller'], dropna = False)
+                     'avg_hallmark_AAI_to_ref', 'organism', 'gcode', 'ORFcaller', 'coverage'], dropna = False)
 
 summary_list = []
 for name, group in grouped_df:
@@ -142,12 +167,14 @@ for name, group in grouped_df:
         
     if gene_count >= 1:
         summary_list.append([outname, name[3], name[8], name[1], end_type, gene_count, vir_hall_count, rep_hall_count, 
-                             rdrp_hall_count, vir_hall_list, rep_hall_list, rdrp_hall_list, name[5], name[10]])
+                             rdrp_hall_count, vir_hall_list, rep_hall_list, rdrp_hall_list, name[5], name[10], 
+                             name[9], name[11]])
 
 summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organism', 'virus_seq_length', 
                                                  'end_feature', 'gene_count', 'virion_hallmark_count', 'rep_hallmark_count',
                                                  'RDRP_hallmark_count', 'virion_hallmark_genes', 'rep_hallmark_genes', 
-                                                 'RDRP_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller'])
+                                                 'RDRP_hallmark_genes', 'taxonomy_hierarchy', 'ORF_caller',
+                                                 'gcode', 'avg_read_depth'])
 
 
 summary_df['virus_seq_length'] = summary_df['virus_seq_length'].infer_objects(copy=False).fillna(0)

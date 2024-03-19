@@ -227,9 +227,11 @@ def cenotetaker3():
                                 the first nucleotide in the contig/genome')
     optional_args.add_argument("--genbank", dest="GENBANK", type=str2bool, default="True", 
                             help='Default: True -- Make GenBank files (.gbf, .sqn, .fsa, .tbl, .cmt, etc)?')
-    optional_args.add_argument("--taxdb", dest="TAXDB", type=str, choices=['refseq', 'nr90'],
-                            default='nr90', 
-                            help='Default: nr90 -- Which taxonomy database to use, refseq virus OR nr clustered at 90 percent AAI and filtered down to virus hallmark genes')
+    optional_args.add_argument("--taxdb", dest="TAXDB", type=str, choices=['refseq', 'hallmark'],
+                            default='hallmark', 
+                            help='Default: hallmark -- Which taxonomy database to use, just refseq virus OR virus hallmark genes \
+                                from nr virus containing genus, family, and class taxonomy labels and clustered at 90 percent \
+                                AAI plus all hallmark genes from refseq virus')
     optional_args.add_argument("--seqtech", dest="SEQTECH", type=str,
                             default='Illumina', 
                             help='Default: Illumina -- Which sequencing technology produced the reads?')
@@ -292,7 +294,8 @@ def cenotetaker3():
         TAXDBV = 'refseq_virus_prot_taxDB'
     elif args.TAXDB == 'nr90':
         TAXDBV = 'ct3_hallmark_nr_virus.cd90.taxDB'
-    
+    elif args.TAXDB == 'hallmark':
+        TAXDBV = 'ct3_hallmark.taxDB'
 
     ## check that all DBs exist
     def check_ct3_dbs():

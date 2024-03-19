@@ -147,6 +147,8 @@ echo "Cenote scripts directory:          $CENOTE_SCRIPTS" >> ${C_OUTDIR}/run_arg
 echo "Template file:                     $TEMPLATE_FILE" >> ${C_OUTDIR}/run_arguments.txt
 echo "read file(s):                      $READS" >> ${C_OUTDIR}/run_arguments.txt
 echo "HHsuite tool:                      $HHSUITE_TOOL" >> ${C_OUTDIR}/run_arguments.txt
+echo "Taxonomy DB:                       $TAXDBV" >> ${C_OUTDIR}/run_arguments.txt
+
 
 cat ${C_OUTDIR}/run_arguments.txt
 
@@ -1232,22 +1234,7 @@ if [ -n "$FSA_FILES" ] && [ "$GENBANK" == "True" ] ; then
 	  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv\
 	  ${C_OUTDIR}/sequin_and_genome_maps\
 	  $ASSEMBLER $SEQTECH
-#	for REC in $FSA_FILES ; do
-#		if [ -s ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv ] ; then
-#			COVERAGE=$( awk -v SEQNAME="${REC%.fsa}" '{OFS=FS="\t"}{ if ($1 == SEQNAME) {print $7}}' \
-#				${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv | head -n1 )
-#
-#		else
-#			COVERAGE=1
-#		fi
-#
-#		echo "StructuredCommentPrefix	##Genome-Assembly-Data-START##" > ${REC%.fsa}.cmt
-#		echo "Assembly Method	${ASSEMBLER}" >> ${REC%.fsa}.cmt
-#		echo "Genome Coverage	"$COVERAGE"x" >> ${REC%.fsa}.cmt
-#		echo "Sequencing Technology	Illumina" >> ${REC%.fsa}.cmt
-#		echo "Annotation Pipeline	Cenote-Taker 3" >> ${REC%.fsa}.cmt
-#		echo "URL	https://github.com/mtisza1/Cenote-Taker3" >> ${REC%.fsa}.cmt	
-#	done
+
 fi
 
 ### Merge final virus seqs

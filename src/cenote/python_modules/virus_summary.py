@@ -104,7 +104,7 @@ merge_df = pd.merge(merge_df, gcode_df, on = "contig", how = "left")
 if not sam_df.empty:
     merge_df = pd.merge(merge_df, sam_df, on = ["contig", "chunk_name"], how = "left")
 else:
-    merge_df['coverage'] = 0
+    merge_df['coverage'] = "NaN"
 
 merge_df['taxon'] = merge_df['taxon'].infer_objects(copy=False).fillna("unclassified virus")
 

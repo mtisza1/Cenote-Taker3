@@ -88,7 +88,7 @@ conda 23.7.4
 
 `cd ..`
 
-`get_ct3_dbs -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T --domain_list T`
+`get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T`
 
 <details>
 
@@ -107,7 +107,7 @@ conda 23.7.4
   | pdb70    | 56 GB  |
   
   ```         
-  get_ct3_dbs -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
+  get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
   ```
 
 </details>
@@ -142,7 +142,7 @@ conda 23.7.4
 
 `cd ..`
 
-`get_ct3_dbs -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T --domain_list T`
+`get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T`
 
 <details>
 
@@ -161,7 +161,7 @@ conda 23.7.4
   | pdb70    | 56 GB  |
   
   ```         
-  get_ct3_dbs -o ct3_DBs --hmm T --mmseqs_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
+  get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
   ```
 
 </details>

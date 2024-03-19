@@ -22,7 +22,11 @@ num_seqs = sum( 1 for _ in enumerate(SeqIO.parse(in_fna, "fasta")))
 
 gene_df = pd.read_csv(genes_sum, sep = '\t', header = 0)
 
-num_virus_contigs = len(gene_df['contig'].drop_duplicates())
+gene_df['chunk_name'] = gene_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+
+gene_df['contig_chunk'] = gene_df['contig'] + "@" + gene_df['chunk_name']
+
+num_virus_contigs = len(gene_df['contig_chunk'].drop_duplicates())
 
 all_genes = len(gene_df['gene_name'].drop_duplicates())
 nonhypo_genes = len(gene_df.query('evidence_description != "hypothetical protein"')['gene_name'].drop_duplicates())

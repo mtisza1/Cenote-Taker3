@@ -33,6 +33,8 @@ ASSEMBLER=${28}
 MOL_TYPE=${29}
 DATA_SOURCE=${30}
 GENBANK=${31}
+TAXDBV=${32}
+SEQTECH=${33}
 
 ### check output directory (created in cenotetaker3.py)
 
@@ -145,6 +147,8 @@ echo "Cenote scripts directory:          $CENOTE_SCRIPTS" >> ${C_OUTDIR}/run_arg
 echo "Template file:                     $TEMPLATE_FILE" >> ${C_OUTDIR}/run_arguments.txt
 echo "read file(s):                      $READS" >> ${C_OUTDIR}/run_arguments.txt
 echo "HHsuite tool:                      $HHSUITE_TOOL" >> ${C_OUTDIR}/run_arguments.txt
+echo "Taxonomy DB:                       $TAXDBV" >> ${C_OUTDIR}/run_arguments.txt
+
 
 cat ${C_OUTDIR}/run_arguments.txt
 
@@ -472,11 +476,11 @@ else
 			mmseqs createdb ${TEMP_DIR}/hallmark_tax/orig_hallmark_genes.faa ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB -v 1
 
 			mmseqs search ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
-			  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+			  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 			  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/tmp -v 1 --start-sens 1 --sens-steps 3 -s 7
 
 			mmseqs convertalis ${TEMP_DIR}/hallmark_tax/orig_hallmark_genesDB\
-			  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+			  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 			  ${TEMP_DIR}/hallmark_tax/orig_hallmarks_resDB ${TEMP_DIR}/hallmark_tax/orig_hallmarks_align.tsv\
 			  --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
 
@@ -1133,11 +1137,11 @@ if [ -s ${TEMP_DIR}/virion_reORF_pyhmmer/hit_this_round1.txt ] ; then
 		mmseqs createdb ${TEMP_DIR}/final_taxonomy/hallmark_proteins.faa ${TEMP_DIR}/final_taxonomy/hallmark_proteinsDB -v 1
 
 		mmseqs search ${TEMP_DIR}/final_taxonomy/hallmark_proteinsDB\
-		  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+		  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 		  ${TEMP_DIR}/final_taxonomy/hallmark_proteins_resDB ${TEMP_DIR}/final_taxonomy/tmp -v 1 --start-sens 1 --sens-steps 3 -s 7
 
 		mmseqs convertalis ${TEMP_DIR}/final_taxonomy/hallmark_proteinsDB\
-		  ${C_DBS}/mmseqs_DBs/refseq_virus_prot_taxDB\
+		  ${C_DBS}/mmseqs_DBs/${TAXDBV}\
 		  ${TEMP_DIR}/final_taxonomy/hallmark_proteins_resDB ${TEMP_DIR}/final_taxonomy/hallmark_proteins_align.tsv\
 		  --format-output query,target,pident,alnlen,evalue,theader,taxlineage -v 1
 
@@ -1225,22 +1229,12 @@ fi
 FSA_FILES=$( find ${C_OUTDIR}/sequin_and_genome_maps -type f -name "*fsa" )
 
 if [ -n "$FSA_FILES" ] && [ "$GENBANK" == "True" ] ; then
-	for REC in $FSA_FILES ; do
-		if [ -s ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv ] ; then
-			COVERAGE=$( awk -v SEQNAME="${REC%.fsa}" '{OFS=FS="\t"}{ if ($1 == SEQNAME) {print $7}}' \
-				${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv | head -n1 )
 
-		else
-			COVERAGE=1
-		fi
+	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_cmts.py\
+	  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv\
+	  ${C_OUTDIR}/sequin_and_genome_maps\
+	  $ASSEMBLER $SEQTECH
 
-		echo "StructuredCommentPrefix	##Genome-Assembly-Data-START##" > ${REC%.fsa}.cmt
-		echo "Assembly Method	${ASSEMBLER}" >> ${REC%.fsa}.cmt
-		echo "Genome Coverage	"$COVERAGE"x" >> ${REC%.fsa}.cmt
-		echo "Sequencing Technology	Illumina" >> ${REC%.fsa}.cmt
-		echo "Annotation Pipeline	Cenote-Taker 3" >> ${REC%.fsa}.cmt
-		echo "URL	https://github.com/mtisza1/Cenote-Taker3" >> ${REC%.fsa}.cmt	
-	done
 fi
 
 ### Merge final virus seqs
@@ -1297,6 +1291,7 @@ fi
 #--  ${TEMP_DIR}/reORF/contig_gcodes1.txt
 #--  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt
 #--  ${TEMP_DIR}/contig_to_organism.tsv
+#--  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv
 #- output: -#
 #--  ${C_OUTDIR}/${run_title}_virus_summary.tsv
 #----	fields
@@ -1313,7 +1308,8 @@ if [ -s ${C_OUTDIR}/final_genes_to_contigs_annotation_summary.tsv ] ; then
 	python ${CENOTE_SCRIPTS}/python_modules/virus_summary.py ${TEMP_DIR}/contig_name_map.tsv \
 	  ${C_OUTDIR}/final_genes_to_contigs_annotation_summary.tsv ${TEMP_DIR}/final_taxonomy/virus_taxonomy_summary.tsv \
 	  ${C_OUTDIR} ${run_title} ${TEMP_DIR}/reORF/contig_gcodes1.txt\
-	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt $CALLER ${TEMP_DIR}/contig_to_organism.tsv
+	  ${TEMP_DIR}/hallmark_tax/phanotate_seqs1.txt $CALLER ${TEMP_DIR}/contig_to_organism.tsv\
+	  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv
 
 	python ${CENOTE_SCRIPTS}/python_modules/summary_statement.py\
 	  ${C_OUTDIR}/${run_title}.contigs_over_${LENGTH_MINIMUM}nt.fasta $LENGTH_MINIMUM\

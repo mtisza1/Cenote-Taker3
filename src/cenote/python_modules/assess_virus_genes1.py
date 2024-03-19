@@ -269,12 +269,14 @@ if not long_df.empty:
         
     except:
         
-
-        os.mkdir(os.path.join(out_dir, "prune_figures"))
+        if not os.path.isdir(os.path.join(out_dir, "prune_figures")):
+            os.mkdir(os.path.join(out_dir, "prune_figures"))
 
 else:
     print(f"{os.path.basename(__file__)}: No non-DTR virus contigs >= 10,000 nt. So pruning will not happen")
-    os.mkdir(os.path.join(out_dir, "prune_figures"))
+
+    if not os.path.isdir(os.path.join(out_dir, "prune_figures")):
+        os.mkdir(os.path.join(out_dir, "prune_figures"))
 
 
 

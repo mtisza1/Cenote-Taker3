@@ -79,7 +79,7 @@ def cenotetaker3():
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.2.1"
+    __version__ = "3.3.0"
 
     Def_CPUs = os.cpu_count()
 
@@ -227,7 +227,14 @@ def cenotetaker3():
                                 the first nucleotide in the contig/genome')
     optional_args.add_argument("--genbank", dest="GENBANK", type=str2bool, default="True", 
                             help='Default: True -- Make GenBank files (.gbf, .sqn, .fsa, .tbl, .cmt, etc)?')
-
+    optional_args.add_argument("--taxdb", dest="TAXDB", type=str, choices=['refseq', 'hallmark'],
+                            default='hallmark', 
+                            help='Default: hallmark -- Which taxonomy database to use, just refseq virus OR virus hallmark genes \
+                                from nr virus containing genus, family, and class taxonomy labels and clustered at 90 percent \
+                                AAI plus all hallmark genes from refseq virus')
+    optional_args.add_argument("--seqtech", dest="SEQTECH", type=str,
+                            default='Illumina', 
+                            help='Default: Illumina -- Which sequencing technology produced the reads?')
     args = parser.parse_args()
 
     ## annotation mode overrides other arguments
@@ -282,6 +289,14 @@ def cenotetaker3():
     elif args.C_DBS == "default":
         args.C_DBS = parentpath
 
+    ## format TAXDB call
+    if args.TAXDB == 'refseq':
+        TAXDBV = 'refseq_virus_prot_taxDB'
+    elif args.TAXDB == 'nr90':
+        TAXDBV = 'ct3_hallmark_nr_virus.cd90.taxDB'
+    elif args.TAXDB == 'hallmark':
+        TAXDBV = 'ct3_hallmark.taxDB'
+
     ## check that all DBs exist
     def check_ct3_dbs():
         ## checking db path
@@ -320,9 +335,9 @@ def cenotetaker3():
                 logger.warning("Exiting.")
                 sys.exit()
         ## checking mmseqs tax db
-        if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'refseq_virus_prot_taxDB')):
+        if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', str(TAXDBV))):
             logger.warning(f"mmseqs tax db file is not found at")
-            logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'refseq_virus_prot_taxDB')}")
+            logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', str(TAXDBV))}")
             logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
                            and setting CENOTE_DBS environmental variable")
             logger.warning("Exiting.")
@@ -397,7 +412,7 @@ def cenotetaker3():
                     str(args.isolation_source), str(args.collection_date), str(args.metagenome_type), 
                     str(args.srr_number), str(args.srx_number), str(args.biosample), 
                     str(args.bioproject), str(args.ASSEMBLER), str(args.MOLECULE_TYPE), 
-                    str(args.DATA_SOURCE), str(args.GENBANK)],
+                    str(args.DATA_SOURCE), str(args.GENBANK), str(TAXDBV), str(args.SEQTECH)],
                     stdout=PIPE, stderr=STDOUT)
 
     with process.stdout:

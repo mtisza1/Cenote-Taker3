@@ -24,55 +24,58 @@ if not hhrout_list:
 rows = []
 
 for hhresult_file in hhrout_list:
-    with open(hhresult_file, 'r') as hrh:
-        for line in hrh:
-            if line.startswith('Query         '):
-                gene_name = line.strip('Query         ').split(' ')[0]
-            
-            #with this logic, only files with results (lines starting with >) append the df
-            if line.startswith('>'):
-                full_desc = line.rstrip('\n').strip('>')
+    try:
+        with open(hhresult_file, 'r') as hrh:
+            for line in hrh:
+                if line.startswith('Query         '):
+                    gene_name = line.strip('Query         ').split(' ')[0]
+                
+                #with this logic, only files with results (lines starting with >) append the df
+                if line.startswith('>'):
+                    full_desc = line.rstrip('\n').strip('>')
 
-                ## CDD models
-                if line.startswith('>cd') or line.startswith('>sd'):
-                    accession = full_desc.split(' ')[0]
+                    ## CDD models
+                    if line.startswith('>cd') or line.startswith('>sd'):
+                        accession = full_desc.split(' ')[0]
 
-                    try:
-                        #annotation = full_desc.split('; ')[1].split('. ')[0]
-                        annotation = full_desc.split(' ')[1].split(';')[0]
-                    except:
-                        annotation = 'hypothetical protein'
+                        try:
+                            #annotation = full_desc.split('; ')[1].split('. ')[0]
+                            annotation = full_desc.split(' ')[1].split(';')[0]
+                        except:
+                            annotation = 'hypothetical protein'
 
-                ## PFAM models
-                elif line.startswith('>PF'):
-                    accession = full_desc.split(' ; ')[0]
+                    ## PFAM models
+                    elif line.startswith('>PF'):
+                        accession = full_desc.split(' ; ')[0]
 
-                    try:
-                        annotation = full_desc.split('; ')[2]
-                    except:
-                        annotation = 'hypothetical protein'
+                        try:
+                            annotation = full_desc.split('; ')[2]
+                        except:
+                            annotation = 'hypothetical protein'
 
-                ## PDB models
-                else:
-                    accession = full_desc.split(' ')[0]
+                    ## PDB models
+                    else:
+                        accession = full_desc.split(' ')[0]
 
-                    try:
-                        annotationpd = full_desc.split(' ')[1:]
-                        annotationpd = ' '.join(annotationpd)
-                        if ']' in annotationpd:
-                            annotation = annotationpd.split(']')[1].split(';')[0]
-                        else:
-                            annotation = annotationpd.split(';')[0]
-                    except:
-                        annotation = 'hypothetical protein'
+                        try:
+                            annotationpd = full_desc.split(' ')[1:]
+                            annotationpd = ' '.join(annotationpd)
+                            if ']' in annotationpd:
+                                annotation = annotationpd.split(']')[1].split(';')[0]
+                            else:
+                                annotation = annotationpd.split(';')[0]
+                        except:
+                            annotation = 'hypothetical protein'
 
-                full_stats = next(hrh, '').strip()
-                probability = full_stats.split('  ')[0].split('=')[1]
-                evalue = full_stats.split('  ')[1].split('=')[1]
-                Aligned_cols = full_stats.split('  ')[3].split('=')[1]
-                row = [gene_name, accession, annotation, probability, evalue, Aligned_cols]
+                    full_stats = next(hrh, '').strip()
+                    probability = full_stats.split('  ')[0].split('=')[1]
+                    evalue = full_stats.split('  ')[1].split('=')[1]
+                    Aligned_cols = full_stats.split('  ')[3].split('=')[1]
+                    row = [gene_name, accession, annotation, probability, evalue, Aligned_cols]
 
-                rows.append(row)
+                    rows.append(row)
+    except Exception as e:
+        print(hhresult_file, e)
 
 hhpred_df = pd.DataFrame(rows, columns=['gene_name', 'evidence_acession', 'evidence_description', 
                                         'evidence_prob', 'evalue', 'Aligned_cols'])

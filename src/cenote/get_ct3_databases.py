@@ -122,12 +122,13 @@ def get_ct3_dbs():
     if str(args.MMSEQS_CDD) == "True":
         # https://zenodo.org/records/10840546/files/cddid_all.tbl
         print ("running mmseqs CDD database update/install")
+        MMSEQS_outdir = os.path.join(str(args.C_DBS), "mmseqs_DBs")
         subprocess.call(['wget', '--directory-prefix=' + str(MMSEQS_outdir), 
                         'https://zenodo.org/records/10840546/files/cddid_all.tbl'])
         if not is_tool("mmseqs") :
             print("mmseqs is not found. Exiting. Is conda environment activated?")
             sys.exit()
-        MMSEQS_outdir = os.path.join(str(args.C_DBS), "mmseqs_DBs")
+        
         if not os.path.isdir(MMSEQS_outdir):
             os.makedirs(MMSEQS_outdir, exist_ok=True)
 

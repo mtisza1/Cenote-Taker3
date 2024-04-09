@@ -28,7 +28,7 @@ for hhresult_file in hhrout_list:
         with open(hhresult_file, 'r') as hrh:
             for line in hrh:
                 if line.startswith('Query         '):
-                    gene_name = line.strip('Query         ').split(' ')[0]
+                    gene_name = line[15:].split(' ')[0]
                 
                 #with this logic, only files with results (lines starting with >) append the df
                 if line.startswith('>'):
@@ -68,6 +68,7 @@ for hhresult_file in hhrout_list:
                             annotation = 'hypothetical protein'
 
                     full_stats = next(hrh, '').strip()
+                    
                     probability = full_stats.split('  ')[0].split('=')[1]
                     evalue = full_stats.split('  ')[1].split('=')[1]
                     Aligned_cols = full_stats.split('  ')[3].split('=')[1]

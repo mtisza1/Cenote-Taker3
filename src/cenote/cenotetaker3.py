@@ -234,7 +234,8 @@ def cenotetaker3():
                                 AAI plus all hallmark genes from refseq virus')
     optional_args.add_argument("--seqtech", dest="SEQTECH", type=str,
                             default='Illumina', 
-                            help='Default: Illumina -- Which sequencing technology produced the reads?')
+                            help='Default: Illumina -- Which sequencing technology produced the reads? \
+                                Common options: Illumina, Oxford Nanopore, PacBio, Onso, Aviti')
     args = parser.parse_args()
 
     ## annotation mode overrides other arguments

@@ -1100,7 +1100,15 @@ if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] && [ "${READS}" != 
 		mkdir ${TEMP_DIR}/mapping_reads
 	fi
 
-	minimap2 -t $CPU -ax sr ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ${READS} |\
+	if [ "$SEQTECH" == "Oxford Nanopore" ] || [ "$SEQTECH" == "Nanopore" ] ; then
+		MM_OPTIONS="map-ont"
+	elif [ "$SEQTECH" == "PacBio" ] ; then
+		MM_OPTIONS="map-hifi"
+	else
+		MM_OPTIONS="sr"
+	fi
+
+	minimap2 -t $CPU -ax "${MM_OPTIONS}" ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ${READS} |\
 	  samtools sort - | samtools coverage -o ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv -
 
 else
@@ -1233,7 +1241,7 @@ if [ -n "$FSA_FILES" ] && [ "$GENBANK" == "True" ] ; then
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_cmts.py\
 	  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv\
 	  ${C_OUTDIR}/sequin_and_genome_maps\
-	  $ASSEMBLER $SEQTECH
+	  $ASSEMBLER "$SEQTECH"
 
 fi
 

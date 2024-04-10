@@ -235,7 +235,7 @@ def cenotetaker3():
     optional_args.add_argument("--seqtech", dest="SEQTECH", type=str,
                             default='Illumina', 
                             help='Default: Illumina -- Which sequencing technology produced the reads? \
-                                Common options: Illumina, Oxford Nanopore, PacBio, Onso, Aviti')
+                                Common options: Illumina, Nanopore, PacBio, Onso, Aviti')
     optional_args.add_argument("--max_dtr_assess", dest="MAXDTR", type=float,
                             default=1_000_000, 
                             help='Default: 1000000 -- maximum sequence length to assess DTRs. Extra long \

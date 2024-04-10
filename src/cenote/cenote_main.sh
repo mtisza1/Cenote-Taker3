@@ -35,6 +35,7 @@ DATA_SOURCE=${30}
 GENBANK=${31}
 TAXDBV=${32}
 SEQTECH=${33}
+MAX_LENGTH_DTR=${34}
 
 ### check output directory (created in cenotetaker3.py)
 
@@ -72,9 +73,11 @@ if [ -n "$PDB_HHSUITE" ] ; then
 	HHSUITE_DB_STR="${HHSUITE_DB_STR}-d ${PDB_HHSUITE}"
 fi
 if [ ! -n "$HHSUITE_DB_STR" ] ; then
-	echo "HHsuite databases not found at ${C_DBS}/hhsearch_DBs"
-	echo "$HHSUITE_TOOL will not be run"
-	HHSUITE_TOOL="none"
+	if [ "$HHSUITE_TOOL" != "none" ] ; then
+		echo "HHsuite databases not found at ${C_DBS}/hhsearch_DBs"
+		echo "$HHSUITE_TOOL will not be run"
+		HHSUITE_TOOL="none"
+	fi
 fi
 
 
@@ -323,7 +326,7 @@ if [ -s ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta ] ; then
 
 	python ${CENOTE_SCRIPTS}/python_modules/terminal_repeats.py ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta\
 	${TEMP_DIR}/hallmarks_per_orig_contigs.tsv $circ_length_cutoff $linear_length_cutoff $CIRC_MINIMUM_DOMAINS\
-	$LIN_MINIMUM_DOMAINS ${TEMP_DIR} $WRAP
+	$LIN_MINIMUM_DOMAINS ${TEMP_DIR} $WRAP $MAX_LENGTH_DTR
 
 	if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/contigs_over_threshold.txt ] ; then
 		

@@ -325,8 +325,13 @@ def cenotetaker3():
                         sec_dir = '/'.join(path.split('/')[0:-1])
                         if sec_dir == os.path.join(str(args.C_DBS), 'hmmscan_DBs'):
                             args.HMM_DBS = bottom_dir
+                            logger.warning(f"Found HMM DB v{args.HMM_DBS} in "
+                                           f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs')} "
+                                           f"and it will be used in this run")
+                            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                                           f"for updating databases")
                         else:
-                            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3"
+                            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
                                            f"for installing databases"
                                            f"and setting CENOTE_DBS environmental variable")
                             logger.warning("Exiting.")
@@ -339,8 +344,8 @@ def cenotetaker3():
                 logger.warning(f"hmm db file is not found at")
                 logger.warning(f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS), hf)}")
                 logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
-                            f"for installing databases "
-                            f"and setting CENOTE_DBS environmental variable")
+                                f"for installing databases "
+                                f"and setting CENOTE_DBS environmental variable")
                 logger.warning("Exiting.")
                 sys.exit()
         ## checking mmseqs tax db

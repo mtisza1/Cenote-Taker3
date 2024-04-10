@@ -151,6 +151,9 @@ echo "Template file:                     $TEMPLATE_FILE" >> ${C_OUTDIR}/run_argu
 echo "read file(s):                      $READS" >> ${C_OUTDIR}/run_arguments.txt
 echo "HHsuite tool:                      $HHSUITE_TOOL" >> ${C_OUTDIR}/run_arguments.txt
 echo "Taxonomy DB:                       $TAXDBV" >> ${C_OUTDIR}/run_arguments.txt
+echo "Sequencing Technology:             $SEQTECH" >> ${C_OUTDIR}/run_arguments.txt
+echo "Max seq length to assess DTRs:     $MAX_LENGTH_DTR" >> ${C_OUTDIR}/run_arguments.txt
+
 
 
 cat ${C_OUTDIR}/run_arguments.txt

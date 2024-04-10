@@ -81,7 +81,7 @@ terminal_r_list = []
 for seq_record in SeqIO.parse(fasta_file, "fasta"):
     dtr_seq = fetch_dtr(str(seq_record.seq))
 
-    if not dtr_seq or len(seq_record) > int(maxlength):
+    if not dtr_seq or len(seq_record) > float(maxlength):
         dtr_seq = "NA"
 
     itr_seq = fetch_itr(str(seq_record.seq))

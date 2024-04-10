@@ -28,7 +28,7 @@ for hhresult_file in hhrout_list:
         with open(hhresult_file, 'r') as hrh:
             for line in hrh:
                 if line.startswith('Query         '):
-                    gene_name = line[15:].split(' ')[0]
+                    gene_name = line[14:].split(' ')[0]
                 
                 #with this logic, only files with results (lines starting with >) append the df
                 if line.startswith('>'):

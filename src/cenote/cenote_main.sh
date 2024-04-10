@@ -35,6 +35,7 @@ DATA_SOURCE=${30}
 GENBANK=${31}
 TAXDBV=${32}
 SEQTECH=${33}
+MAX_LENGTH_DTR=${34}
 
 ### check output directory (created in cenotetaker3.py)
 
@@ -72,9 +73,11 @@ if [ -n "$PDB_HHSUITE" ] ; then
 	HHSUITE_DB_STR="${HHSUITE_DB_STR}-d ${PDB_HHSUITE}"
 fi
 if [ ! -n "$HHSUITE_DB_STR" ] ; then
-	echo "HHsuite databases not found at ${C_DBS}/hhsearch_DBs"
-	echo "$HHSUITE_TOOL will not be run"
-	HHSUITE_TOOL="none"
+	if [ "$HHSUITE_TOOL" != "none" ] ; then
+		echo "HHsuite databases not found at ${C_DBS}/hhsearch_DBs"
+		echo "$HHSUITE_TOOL will not be run"
+		HHSUITE_TOOL="none"
+	fi
 fi
 
 
@@ -148,6 +151,9 @@ echo "Template file:                     $TEMPLATE_FILE" >> ${C_OUTDIR}/run_argu
 echo "read file(s):                      $READS" >> ${C_OUTDIR}/run_arguments.txt
 echo "HHsuite tool:                      $HHSUITE_TOOL" >> ${C_OUTDIR}/run_arguments.txt
 echo "Taxonomy DB:                       $TAXDBV" >> ${C_OUTDIR}/run_arguments.txt
+echo "Sequencing Technology:             $SEQTECH" >> ${C_OUTDIR}/run_arguments.txt
+echo "Max seq length to assess DTRs:     $MAX_LENGTH_DTR" >> ${C_OUTDIR}/run_arguments.txt
+
 
 
 cat ${C_OUTDIR}/run_arguments.txt
@@ -323,7 +329,7 @@ if [ -s ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta ] ; then
 
 	python ${CENOTE_SCRIPTS}/python_modules/terminal_repeats.py ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta\
 	${TEMP_DIR}/hallmarks_per_orig_contigs.tsv $circ_length_cutoff $linear_length_cutoff $CIRC_MINIMUM_DOMAINS\
-	$LIN_MINIMUM_DOMAINS ${TEMP_DIR} $WRAP
+	$LIN_MINIMUM_DOMAINS ${TEMP_DIR} $WRAP $MAX_LENGTH_DTR
 
 	if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/contigs_over_threshold.txt ] ; then
 		
@@ -1100,7 +1106,15 @@ if [ -s ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ] && [ "${READS}" != 
 		mkdir ${TEMP_DIR}/mapping_reads
 	fi
 
-	minimap2 -t $CPU -ax sr ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ${READS} |\
+	if [ "$SEQTECH" == "Oxford Nanopore" ] || [ "$SEQTECH" == "Nanopore" ] ; then
+		MM_OPTIONS="map-ont"
+	elif [ "$SEQTECH" == "PacBio" ] ; then
+		MM_OPTIONS="map-hifi"
+	else
+		MM_OPTIONS="sr"
+	fi
+
+	minimap2 -t $CPU -ax "${MM_OPTIONS}" ${TEMP_DIR}/oriented_hallmark_contigs.pruned.fasta ${READS} |\
 	  samtools sort - | samtools coverage -o ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv -
 
 else
@@ -1233,7 +1247,7 @@ if [ -n "$FSA_FILES" ] && [ "$GENBANK" == "True" ] ; then
 	python ${CENOTE_SCRIPTS}/python_modules/make_sequin_cmts.py\
 	  ${TEMP_DIR}/mapping_reads/oriented_hallmark_contigs.pruned.coverage.tsv\
 	  ${C_OUTDIR}/sequin_and_genome_maps\
-	  $ASSEMBLER $SEQTECH
+	  $ASSEMBLER "$SEQTECH"
 
 fi
 

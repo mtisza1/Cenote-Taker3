@@ -43,7 +43,7 @@ Image of example genome map:
 
 1) Not for read-level classification of known viruses (see [Marker-MAGu](https://github.com/cmmr/Marker-MAGu) or [EsViritu](https://github.com/cmmr/EsViritu) for this task)
 
-2) Not ideal for annotating virus genomes that are highly similar to known references (e.g. phage lambda with a few mutations)
+2) Not ideal for annotating virus genomes that are highly similar to known references (e.g. phage lambda with a few mutations).
 
 ## Schematic
 
@@ -53,7 +53,7 @@ Image of example genome map:
 
 **Most recent versions**
 
-Cenote-Taker 3 scripts:   `v3.3.0`
+Cenote-Taker 3 scripts:   `v3.3.1`
 Cenote-Taker 3 Databases: `v3.1.1`
 
 **This should work on MacOS and Linux**
@@ -80,15 +80,20 @@ conda 23.7.4
 
 </details>
 
+2)  Activate the conda environment.
+
+`conda activate ct3_env`
+
+
 *You should be able to type `cenotetaker3` and `get_ct3_dbs` in terminal to bring up help menu now*
 
-2)  Change to a directory where you'd like to install databases and run database script, specify DB directory with `-o`.
+3)  Change to a directory where you'd like to install databases and run database script, specify DB directory with `-o`.
 
 *Total DB file size of 3.0 GB after file decompression*
 
 `cd ..`
 
-`get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T`
+`get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --refseq_tax  T --mmseqs_cdd T --domain_list T`
 
 <details>
 
@@ -107,12 +112,12 @@ conda 23.7.4
   | pdb70    | 56 GB  |
   
   ```         
-  get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
+  get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --refseq_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
   ```
 
 </details>
 
-3)  Set the database directory as a conda environmental variable.
+4)  Set the database directory as a conda environmental variable.
 
 `conda env config vars set CENOTE_DBS=/path/to/ct3_DBs`
 
@@ -142,7 +147,7 @@ conda 23.7.4
 
 `cd ..`
 
-`get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T`
+`get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --refseq_tax T --mmseqs_cdd T --domain_list T`
 
 <details>
 
@@ -161,7 +166,7 @@ conda 23.7.4
   | pdb70    | 56 GB  |
   
   ```         
-  get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
+  get_ct3_dbs -o ct3_DBs --hmm T --hallmark_tax T --refseq_tax T --mmseqs_cdd T --domain_list T --hhCDD T --hhPFAM T --hhPDB T
   ```
 
 </details>
@@ -198,7 +203,7 @@ cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T
 cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T --lin_minimum_hallmark_genes 2
 ```
 
-### Discover and Annotate, Force `prodigal` (prodigal-gv is default)
+### Discover and Annotate, Force `prodigal` (`prodigal-gv` is default)
 
 ```         
 cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3pr -p T --caller prodigal

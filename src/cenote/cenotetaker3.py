@@ -79,7 +79,7 @@ def cenotetaker3():
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.3.0"
+    __version__ = "3.3.1"
 
     Def_CPUs = os.cpu_count()
 
@@ -127,10 +127,10 @@ def cenotetaker3():
     optional_args.add_argument("--reads", nargs="+",
                                 dest="READS", default="none", 
                                 help='read file(s) in .fastq format. You can specify more than one separated by a space')
-    optional_args.add_argument("--minimum_length_circular", dest="circ_length_cutoff", type=int, default='1000', 
+    optional_args.add_argument("--minimum_length_circular", dest="circ_length_cutoff", type=int, default=1000, 
                             help='Default: 1000 -- Minimum length of contigs to be checked for circularity. Bare minimun is \
                                 1000 nts')
-    optional_args.add_argument("--minimum_length_linear", dest="linear_length_cutoff", type=int, default='1000', 
+    optional_args.add_argument("--minimum_length_linear", dest="linear_length_cutoff", type=int, default=1000, 
                             help='Default: 1000 -- Minimum length of non-circualr contigs to be checked for viral \
                                 hallmark genes.')
     optional_args.add_argument("-db", "--virus_domain_db", dest="HALL_LIST", type=str, choices=['virion', 'rdrp', 'dnarep'],
@@ -141,11 +141,11 @@ def cenotetaker3():
                                 rate. \'rdrp\' database: For RNA virus-derived RNA-dependent RNA polymerase. \
                                 \'dnarep\' database: replication genes of DNA viruses. mostly useful for small \
                                 DNA viruses, e.g. CRESS viruses')
-    optional_args.add_argument("--lin_minimum_hallmark_genes", dest="LIN_MINIMUM_DOMAINS", type=int, default='1', 
+    optional_args.add_argument("--lin_minimum_hallmark_genes", dest="LIN_MINIMUM_DOMAINS", type=int, default=1, 
                             help='Default: 1 -- Number of detected viral hallmark genes on a non-circular contig to be \
                                 considered viral and recieve full annotation. \
                                 \'2\' might be more suitable, yielding a false positive rate near 0. ')
-    optional_args.add_argument("--circ_minimum_hallmark_genes", dest="CIRC_MINIMUM_DOMAINS", type=int, default='1', 
+    optional_args.add_argument("--circ_minimum_hallmark_genes", dest="CIRC_MINIMUM_DOMAINS", type=int, default=1, 
                             help='Default:1 -- Number of detected viral hallmark genes on a circular contig to be \
                                 considered viral and recieve full annotation. For samples physically enriched for virus \
                                 particles, \'0\' can be used, but please treat circular contigs without known viral \
@@ -234,7 +234,14 @@ def cenotetaker3():
                                 AAI plus all hallmark genes from refseq virus')
     optional_args.add_argument("--seqtech", dest="SEQTECH", type=str,
                             default='Illumina', 
-                            help='Default: Illumina -- Which sequencing technology produced the reads?')
+                            help='Default: Illumina -- Which sequencing technology produced the reads? \
+                                Common options: Illumina, Nanopore, PacBio, Onso, Aviti')
+    optional_args.add_argument("--max_dtr_assess", dest="MAXDTR", type=float,
+                            default=1_000_000, 
+                            help='Default: 1000000 -- maximum sequence length to assess DTRs. Extra long \
+                                contigs with DTRs are likely to be bacterial chromosomes, not virus genomes.')
+
+    
     args = parser.parse_args()
 
     ## annotation mode overrides other arguments
@@ -302,8 +309,9 @@ def cenotetaker3():
         ## checking db path
         if not os.path.isdir(str(args.C_DBS)):
             logger.warning(f"database directory is not found at {str(args.C_DBS)}. Exiting.")
-            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
-                           and setting CENOTE_DBS environmental variable")
+            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                           f"for installing databases "
+                           f"and setting CENOTE_DBS environmental variable")
             sys.exit()
         ## checking hmm dir
         if not os.path.isdir(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS))):
@@ -317,10 +325,15 @@ def cenotetaker3():
                         sec_dir = '/'.join(path.split('/')[0:-1])
                         if sec_dir == os.path.join(str(args.C_DBS), 'hmmscan_DBs'):
                             args.HMM_DBS = bottom_dir
+                            logger.warning(f"Found HMM DB v{args.HMM_DBS} in "
+                                           f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs')} "
+                                           f"and it will be used in this run")
+                            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                                           f"for updating databases")
                         else:
-                            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3\
-                                           for installing databases\
-                                           and setting CENOTE_DBS environmental variable")
+                            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                                           f"for installing databases"
+                                           f"and setting CENOTE_DBS environmental variable")
                             logger.warning("Exiting.")
                             sys.exit()
         ## checking hmm files
@@ -330,32 +343,36 @@ def cenotetaker3():
             if not os.path.isfile(os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS), hf)):
                 logger.warning(f"hmm db file is not found at")
                 logger.warning(f"{os.path.join(str(args.C_DBS), 'hmmscan_DBs', str(args.HMM_DBS), hf)}")
-                logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
-                            and setting CENOTE_DBS environmental variable")
+                logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                                f"for installing databases "
+                                f"and setting CENOTE_DBS environmental variable")
                 logger.warning("Exiting.")
                 sys.exit()
         ## checking mmseqs tax db
         if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', str(TAXDBV))):
             logger.warning(f"mmseqs tax db file is not found at")
             logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', str(TAXDBV))}")
-            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
-                           and setting CENOTE_DBS environmental variable")
+            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                           f"for installing databases "
+                           f"and setting CENOTE_DBS environmental variable")
             logger.warning("Exiting.")
             sys.exit()
         ## checking mmseqs cdd db
         if not os.path.isfile(os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'CDD')):
             logger.warning(f"mmseqs CDD db file is not found at")
             logger.warning(f"{os.path.join(str(args.C_DBS), 'mmseqs_DBs', 'CDD')}")
-            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
-                           and setting CENOTE_DBS environmental variable")
+            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                           f"for installing databases "
+                           f"and setting CENOTE_DBS environmental variable")
             logger.warning("Exiting.")
             sys.exit()
          ## checking virus domain list file
         if not os.path.isfile(os.path.join(str(args.C_DBS), 'viral_cdds_and_pfams_191028.txt')):
             logger.warning(f"virus domain list file is not found at")
             logger.warning(f"{os.path.join(str(args.C_DBS), 'viral_cdds_and_pfams_191028.txt')}")
-            logger.warning("Check instructions at https://github.com/mtisza1/Cenote-Taker3 for installing databases\
-                           and setting CENOTE_DBS environmental variable")
+            logger.warning(f"Check instructions at https://github.com/mtisza1/Cenote-Taker3 "
+                           f"for installing databases "
+                           f"and setting CENOTE_DBS environmental variable")
             logger.warning("Exiting.")
             sys.exit()
 
@@ -391,8 +408,8 @@ def cenotetaker3():
         logger.info(str(args.run_title))
     else:
         logger.warning(f"{str(args.run_title)} is not a valid name for the run title ( -r argument)")
-        logger.warning( "the run title needs to be only letters, numbers and underscores (_) and \
-              18 characters or less. Exiting.")
+        logger.warning(f"the run title needs to be only letters, numbers and underscores (_) and "
+                       f"18 characters or less. Exiting.")
         sys.exit()
 
 
@@ -412,7 +429,8 @@ def cenotetaker3():
                     str(args.isolation_source), str(args.collection_date), str(args.metagenome_type), 
                     str(args.srr_number), str(args.srx_number), str(args.biosample), 
                     str(args.bioproject), str(args.ASSEMBLER), str(args.MOLECULE_TYPE), 
-                    str(args.DATA_SOURCE), str(args.GENBANK), str(TAXDBV), str(args.SEQTECH)],
+                    str(args.DATA_SOURCE), str(args.GENBANK), str(TAXDBV), str(args.SEQTECH),
+                    str(args.MAXDTR)],
                     stdout=PIPE, stderr=STDOUT)
 
     with process.stdout:

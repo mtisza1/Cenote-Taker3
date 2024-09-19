@@ -60,9 +60,9 @@ Cenote-Taker 3 Databases: `v3.1.1`
 
 *Versions used in test installations*
 
-mamba 1.5.1
+`mamba 1.5.8`
 
-conda 23.7.4
+`conda 24.7.1`
 
 ### Bioconda package (most users)
 
@@ -70,15 +70,29 @@ conda 23.7.4
 
 1) Use `mamba` to install the bioconda package
 
-`mamba create -n ct3_env -c conda-forge -c bioconda cenote-taker3`
+**macOS** (specify `osx-64` platform regardless of which chip you have)
+
+`mamba create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
+
+**linux**
+
+`mamba create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
 
 <details>
 
   <summary>Using conda instead</summary>
 
-  `conda create -n ct3_env -c conda-forge -c bioconda cenote-taker3`
+  **macOS** (specify `osx-64` platform regardless of which chip you have)
+
+  `conda create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
+
+  **linux**
+
+  `conda create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
 
 </details>
+
+
 
 2)  Activate the conda environment.
 

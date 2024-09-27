@@ -72,11 +72,11 @@ Cenote-Taker 3 Databases: `v3.1.1`
 
 **macOS** (specify `osx-64` platform regardless of which chip you have)
 
-`mamba create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
+`mamba create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1 pyrodigal-gv=0.3.1`
 
 **linux**
 
-`mamba create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
+`mamba create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1 pyrodigal-gv=0.3.1`
 
 <details>
 
@@ -84,11 +84,11 @@ Cenote-Taker 3 Databases: `v3.1.1`
 
   **macOS** (specify `osx-64` platform regardless of which chip you have)
 
-  `conda create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
+  `conda create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1 pyrodigal-gv=0.3.1`
 
   **linux**
 
-  `conda create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1`
+  `conda create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.3.1 pyrodigal-gv=0.3.1`
 
 </details>
 

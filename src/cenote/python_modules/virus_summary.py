@@ -137,7 +137,7 @@ grouped_df = org_info_df.groupby(['contig', 'chunk_length', 'chunk_name',
 
 summary_list = []
 for name, group in grouped_df:
-    if "Chunk" in str(name[2]):
+    if "C" in str(name[2]):
         outname = "@".join([name[0], name[2]])
     else:
         outname = name[0]

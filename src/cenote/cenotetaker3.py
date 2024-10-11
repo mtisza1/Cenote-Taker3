@@ -12,7 +12,7 @@ import random
 import string
 import re
 import logging
-from distutils.spawn import find_executable
+from shutil import which
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -381,10 +381,12 @@ def cenotetaker3():
     ### check dependencies
     def is_tool(name):
         """Check whether `name` is on PATH."""
-        return find_executable(name) is not None
+        return which(name) is not None
 
-    tool_dep_list = ['samtools', 'minimap2', 'tRNAscan-SE', 'seqkit', 'hhblits', 
-                     'bedtools', 'phanotate.py', 'mmseqs']
+    tool_dep_list = ['samtools', 'minimap2', 
+                     'tRNAscan-SE', 'seqkit', 
+                     'hhblits', 'bedtools', 
+                     'phanotate.py', 'mmseqs']
     
     for tool in tool_dep_list:
         if not is_tool(tool):
@@ -395,11 +397,16 @@ def cenotetaker3():
     reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
     installed_packages = [r.decode().split('==')[0] for r in reqs.split()]
 
-    python_dep_list = ['pyhmmer', 'numpy', 'pandas', 'biopython', 'pyrodigal-gv']
+    python_dep_list = ['pyhmmer', 'numpy', 'pandas', 'biopython', 'pyrodigal']
 
     for pydep in python_dep_list:
         if pydep not in installed_packages:
             logger.warning(f"{pydep} not found in installed python packages. Exiting.")
+            sys.exit() 
+    
+    if not 'pyrodigal-gv' in installed_packages:
+        if not 'pyrodigal_gv' in installed_packages:
+            logger.warning(f"pyrodigal-gv not found in installed python packages. Exiting.")
             sys.exit() 
 
     ## check run_title suitability

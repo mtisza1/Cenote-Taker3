@@ -192,7 +192,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
             row1["Position start"] == 0 and \
             row1["Position stop"] != (total_len + 1):
 
-                ddf = ["Chunk_" + str(i1), 
+                ddf = ["C" + str(i1), 
                        row1["Position start"], 
                        right_cutoff(row2["Window midpoint"], group)]
                 ddf_list.append(ddf)
@@ -206,11 +206,11 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
                 rico = right_cutoff(row2["Window midpoint"], group)
 
                 if rico > leco:
-                    ddf = ["Chunk_" + str(i1), 
+                    ddf = ["C" + str(i1), 
                         left_cutoff(row1["Window midpoint"], group), 
                         right_cutoff(row2["Window midpoint"], group)]
                 else:
-                     ddf = ["Chunk_" + str(i1), row1["Window midpoint"], row2["Window midpoint"]]
+                     ddf = ["C" + str(i1), row1["Window midpoint"], row2["Window midpoint"]]
 
                 ddf_list.append(ddf)
 
@@ -219,7 +219,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
             row1["Position start"] != 0 and \
             row1["Position stop"] == (total_len + 1):
                 
-                ddf = ["Chunk_" + str(i1), 
+                ddf = ["C" + str(i1), 
                        left_cutoff(row1["Window midpoint"], group), 
                        row2["Position stop"]]
                 ddf_list.append(ddf)
@@ -230,7 +230,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
         if merged_df.iloc[0,1] == '+' and \
             merged_df.iloc[0,2] == 0 and \
             merged_df.iloc[0,3] == (total_len + 1): #if first column last(2nd row) == last -1 then its one chunk
-                rep_list = [('Chunk_0', '0', (total_len+1))]
+                rep_list = [('C0', '0', (total_len+1))]
                 ddf_list = rep_list
         else:
                 ddf_list = ddf_list

@@ -13,6 +13,7 @@ import string
 import re
 import logging
 from shutil import which
+import pyhmmer
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -64,7 +65,7 @@ def art_for_arts_sake():
         f"{rand_color[1]}^^^^^",f"{rand_color[0]}00000{ENDC}")
     print(f"{rand_color[0]}00000",f"{rand_color[1]}^^^^^",f"{rand_color[2]}TAKER!",
         f"{rand_color[1]}^^^^^",f"{rand_color[0]}00000{ENDC}")
-    print(f"{rand_color[0]}000000",f"{rand_color[1]}^^^^^^^^^^^^^^^^",f"{rand_color[0]}000000{ENDC}")
+    print(f"{rand_color[0]}00000",f"{rand_color[1]}^^^^^^^^^^^^^^^^^^",f"{rand_color[0]}00000{ENDC}")
     print(f"{rand_color[0]}0000000",f"{rand_color[1]}^^^^^^^^^^^^^^",f"{rand_color[0]}0000000{ENDC}")
     print(f"{rand_color[0]}0000000000",f"{rand_color[1]}^^^^^^^^",f"{rand_color[0]}0000000000{ENDC}")
     print(f"{rand_color[0]}000000000000000000000000000000{ENDC}")
@@ -79,7 +80,7 @@ def cenotetaker3():
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.3.2"
+    __version__ = "3.4.0"
 
     Def_CPUs = os.cpu_count()
 
@@ -408,6 +409,14 @@ def cenotetaker3():
         if not 'pyrodigal_gv' in installed_packages:
             logger.warning(f"pyrodigal-gv not found in installed python packages. Exiting.")
             sys.exit() 
+    
+    # check pyhmmer version
+    if int(pyhmmer.__version__.split(".")[0]) == 0:
+        if int(pyhmmer.__version__.split(".")[1]) < 11:
+            logger.warning(f"pyhmmer version must be >= 0.11.0.")
+            logger.warning(f"Try: mamba install bioconda::pyhmmer=0.11.0")
+            logger.warning(f"Your version is {pyhmmer.__version__}. Exiting.")
+            sys.exit()
 
     ## check run_title suitability
     if re.search(r'^[a-zA-Z0-9_]+$', str(args.run_title)) and \

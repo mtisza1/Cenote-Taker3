@@ -230,7 +230,7 @@ for name, seq_group in chunk_grouped_df:
         elif row['Evidence_source'] == "mmseqs_cdd":  #mmseqs_cdd
             typeq = "CDS"            
             tagstr = ("protein_id" + "\tlcl|" + row['gene_name'])
-            productstr = re.sub("\..*", "", row['evidence_description'])
+            productstr = re.sub(r'\..*', "", row['evidence_description'], count = 1)
             inferencestr = ("inference\tprotein motif CDD:" + str(row['evidence_acession']))
             gtf_inf = ("protein motif " + str(row['evidence_acession']))
 

@@ -62,7 +62,7 @@ hmmscan_list = []
 with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
     for alignments in pool.map(hmmscanner, splitAA_list):
         for model in alignments:
-            quer1 = model.query_name.decode()
+            quer1 = model.query.name.decode()
             pos = quer1.rfind("_")
             contig = quer1[:pos]
             for hit in model:

@@ -14,6 +14,7 @@ import re
 import logging
 from shutil import which
 import pyhmmer
+from cenote.utils.io import read_circular_tsv
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -125,6 +126,9 @@ def cenotetaker3():
                             default=str(cenote_script_path) + '/dummy_template.sbt', 
                             help='Template file with some metadata. Real one required for GenBank submission. Takes a \
                                 couple minutes to generate: https://submit.ncbi.nlm.nih.gov/genbank/template/submission/ ')
+    optional_args.add_argument("--circular-tsv", dest="CIRCULAR_TSV", type=str, default=None,
+                            help='Optional TSV file declaring which input records are circular. Two columns: record_id and is_circular (1/0, true/false, etc.).')
+
     optional_args.add_argument("--reads", nargs="+",
                                 dest="READS", default="none", 
                                 help='read file(s) in .fastq format. You can specify more than one separated by a space')
@@ -284,6 +288,18 @@ def cenotetaker3():
     art_for_arts_sake()
 
     validate_fasta(args.original_contigs)
+
+    # Parse circularity TSV if provided
+    if args.CIRCULAR_TSV is not None and args.CIRCULAR_TSV.lower() != "none":
+        try:
+            circular_map = read_circular_tsv(args.CIRCULAR_TSV)
+            logger.info(f"Loaded circularity status for {len(circular_map)} records from {args.CIRCULAR_TSV}")
+        except Exception as exc:
+            logger.warning(f"Failed to parse circular TSV {args.CIRCULAR_TSV}: {exc}")
+            sys.exit()
+    else:
+        circular_map = {}
+
 
     ## joins read files together when provided with spaces in between
     if not args.READS == "none":

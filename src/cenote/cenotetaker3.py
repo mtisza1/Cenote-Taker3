@@ -221,8 +221,9 @@ def cenotetaker3():
                                 contigs with DTRs are likely to be bacterial chromosomes, not virus genomes.')
     optional_args.add_argument("--circ-file", dest="circf", type=str,
                             default="not given", 
-                            help='Provide a file with the IDs of contigs you believe are circular, one per line. \
-                                If using this option, CT3 will treat these contigs as circular but will \
+                            help='Provide a file with the names of contigs (header line sans ">") \
+                                you believe are circular, one per line. \
+                                If using this option, CT3 will treat listed contigs as circular but will \
                                 not search for DTRs in sequences. Useful for long read assembly outputs \
                                 (flye, myloasm) that report circular contigs.\
                                 --max_dtr_assess will still be considered.')

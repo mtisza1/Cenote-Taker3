@@ -83,12 +83,11 @@ if os.path.isfile(circf):
         for line in circs:
             circ_ids.append(line.strip())
 
-
 terminal_r_list = []
 for seq_record in SeqIO.parse(fasta_file, "fasta"):
-
+    fmt_desc = " ".join(seq_record.description.split(" ")[1:])
     if circ_ids:
-        if seq_record.description in circ_ids:
+        if fmt_desc in circ_ids:
             dtr_seq = "User-provided circular"
         else:
             dtr_seq = None

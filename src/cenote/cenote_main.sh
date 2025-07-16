@@ -36,6 +36,7 @@ GENBANK=${31}
 TAXDBV=${32}
 SEQTECH=${33}
 MAX_LENGTH_DTR=${34}
+CIRCF=${35}
 
 ### check output directory (created in cenotetaker3.py)
 
@@ -153,6 +154,7 @@ echo "HHsuite tool:                      $HHSUITE_TOOL" >> ${C_OUTDIR}/run_argum
 echo "Taxonomy DB:                       $TAXDBV" >> ${C_OUTDIR}/run_arguments.txt
 echo "Sequencing Technology:             $SEQTECH" >> ${C_OUTDIR}/run_arguments.txt
 echo "Max seq length to assess DTRs:     $MAX_LENGTH_DTR" >> ${C_OUTDIR}/run_arguments.txt
+echo "File with circular contig IDs:     $CIRCF" >> ${C_OUTDIR}/run_arguments.txt
 
 
 
@@ -329,7 +331,7 @@ if [ -s ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta ] ; then
 
 	python ${CENOTE_SCRIPTS}/python_modules/terminal_repeats.py ${TEMP_DIR}/unprocessed_hallmark_contigs.fasta\
 	${TEMP_DIR}/hallmarks_per_orig_contigs.tsv $circ_length_cutoff $linear_length_cutoff $CIRC_MINIMUM_DOMAINS\
-	$LIN_MINIMUM_DOMAINS ${TEMP_DIR} $WRAP $MAX_LENGTH_DTR
+	$LIN_MINIMUM_DOMAINS ${TEMP_DIR} $WRAP $MAX_LENGTH_DTR $CIRCF
 
 	if [ -s ${TEMP_DIR}/trimmed_TRs_hallmark_contigs.fasta ] && [ -s ${TEMP_DIR}/contigs_over_threshold.txt ] ; then
 		

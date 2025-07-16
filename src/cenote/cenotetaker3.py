@@ -151,13 +151,6 @@ def cenotetaker3():
                                 considered viral and recieve full annotation. For samples physically enriched for virus \
                                 particles, \'0\' can be used, but please treat circular contigs without known viral \
                                 domains cautiously. For unenriched samples, \'1\' might be more suitable. ')
-    #optional_args.add_argument("--known_strains", dest="handle_knowns", type=str, default='do_not_check_knowns', help='Default: do_not_check_knowns -- do not check if putatively viral contigs are highly related to known sequences (via MEGABLAST). \'blast_knowns\': REQUIRES \'--blastn_db\' option to function correctly. ')
-    #optional_args.add_argument("--blastn_db", dest="BLASTN_DB", type=str, default='none', help='Default: none -- Set a database if using \'--known_strains\' option. Specify BLAST-formatted nucleotide datase. Probably, use only GenBank \'nt\' database, \'nt viral\', or a subset therof, downloaded from ftp://ftp.ncbi.nlm.nih.gov/ Headers must be GenBank record format')
-    #optional_args.add_argument("--enforce_start_codon", dest="ENFORCE_START_CODON", type=str2bool, default=False, 
-    #                        help='Default: False -- For final genome maps, require ORFs to be initiated by a typical \
-    #                            start codon? GenBank submissions containing ORFs without start codons can be rejected. \
-    #                            However, if True,  important but incomplete genes could be culled from the final output. \
-    #                            This is relevant mainly to contigs of incomplete genomes ')
     optional_args.add_argument("-hh", "--hhsuite_tool", dest="HHSUITE_TOOL", type=str, 
                                choices=['none', 'hhblits', 'hhsearch'], default='none', 
                             help=' default: none -- hhblits: query any of PDB, pfam, and CDD (depending on what is installed)\
@@ -167,7 +160,6 @@ def cenotetaker3():
                                 (WARNING: hhsearch takes much, much longer than hhblits and can extend the duration of the \
                                 run many times over. Do not use on large input contig files). \'none\': forgoes \
                                 annotation of ORFs with hhsuite. Fastest way to complete a run. ')
-
     optional_args.add_argument("--caller", dest="CALLER", type=str, choices=['prodigal-gv', 'prodigal', 'phanotate', 'adaptive'],
                             default='prodigal-gv', 
                             help=' ORF caller for viruses. default: prodigal-gv\
@@ -176,10 +168,6 @@ def cenotetaker3():
                                 Note: phanotate takes longer than prodigal, exponentially so for LONG input contigs.\
                                 adaptive: will choose based on preliminary taxonomy call \
                                 (phages = phanotate, others = prodigal-gv)')
-
-    ## should be host prediction, instead
-    #optional_args.add_argument("--crispr_file", dest="CRISPR_FILE", type=str, default='none', help='Tab-separated file with CRISPR hits in the following format: CONTIG_NAME HOST_NAME NUMBER_OF_MATCHES. You could use this tool: https://github.com/edzuf/CrisprOpenDB. Then reformat for Cenote-Taker 3')
-
     optional_args.add_argument("--isolation_source", dest="isolation_source", type=str, default='unknown', 
                             help='Default: unknown -- Describes the local geographical source of the organism from \
                                 which the sequence was derived')
@@ -208,16 +196,6 @@ def cenotetaker3():
                             help=' default: original -- original data is not taken from other researchers\' public or \
                                 private database. \'tpa_assembly\': data is taken from other researchers\' public or \
                                 private database. Please be sure to specify SRA metadata.  ')
-
-    ### I need to account for this or remove it:
-    optional_args.add_argument("--filter_out_plasmids", dest="FILTER_PLASMIDS", type=str2bool, default=True, 
-                            help=argparse.SUPPRESS)
-    ### I need to account for this or remove it:
-    #optional_args.add_argument("--scratch_directory", dest="SCRATCH_DIR", type=str, default="none", 
-    #                        help='Default: none -- When running many instances of Cenote-Taker 3, it seems to run more \
-    #                            quickly if you copy the hhsuite databases to a scratch space temporarily. Use this argument \
-    #                            to set a scratch directory that the databases will be copied to (at least 100GB of scratch \
-    #                            space are required for copying the databases)')
     optional_args.add_argument("--cenote-dbs", dest="C_DBS", type=str, default="default", 
                             help='DB path. If not set here, Cenote-Taker looks for environmental variable CENOTE_DBS. \
                                 Then, if this variable is unset, DB path is assumed to be ' + str(parentpath))
@@ -241,6 +219,13 @@ def cenotetaker3():
                             default=1_000_000, 
                             help='Default: 1000000 -- maximum sequence length to assess DTRs. Extra long \
                                 contigs with DTRs are likely to be bacterial chromosomes, not virus genomes.')
+    optional_args.add_argument("--circ-file", dest="circf", type=str,
+                            default="not given", 
+                            help='Provide a file with the IDs of contigs you believe are circular, one per line. \
+                                If using this option, CT3 will treat these contigs as circular but will \
+                                not search for DTRs in sequences. Useful for long read assembly outputs \
+                                (flye, myloasm) that report circular contigs.\
+                                --max_dtr_assess will still be considered.')
 
     
     args = parser.parse_args()
@@ -446,7 +431,7 @@ def cenotetaker3():
                     str(args.srr_number), str(args.srx_number), str(args.biosample), 
                     str(args.bioproject), str(args.ASSEMBLER), str(args.MOLECULE_TYPE), 
                     str(args.DATA_SOURCE), str(args.GENBANK), str(TAXDBV), str(args.SEQTECH),
-                    str(args.MAXDTR)],
+                    str(args.MAXDTR), str(args.circf)],
                     stdout=PIPE, stderr=STDOUT)
 
     with process.stdout:

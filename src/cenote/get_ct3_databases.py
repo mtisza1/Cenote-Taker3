@@ -79,7 +79,7 @@ def get_ct3_dbs():
 
     if str(args.REFSEQ_TAX) == "True":
         # https://zenodo.org/records/10840546/files/refseq_virus_prot.fasta.gz
-        # https://zenodo.org/records/10840546/files/ct3_hallmark_nr_cd90_refseq.prot_taxids.mmseqs_fmt.tsv
+        # https://zenodo.org/records/10840546/files/refseq_virus_prot_taxids.mmseqs_fmt.tsv
         print ("running mmseqs refseq taxdb database update/install")
         if not is_tool("mmseqs") :
             print("mmseqs is not found. Exiting. Is conda environment activated?")
@@ -92,7 +92,7 @@ def get_ct3_dbs():
         subprocess.call(['gunzip', '-d', os.path.join(MMSEQS_outdir, 'refseq_virus_prot.fasta.gz')])
         #subprocess.call(['rm', '-f', os.path.join(MMSEQS_outdir, 'refseq_virus_prot.fasta.gz')])
         subprocess.call(['wget', '--directory-prefix=' + str(MMSEQS_outdir), 
-                        'https://zenodo.org/records/10840546/files/ct3_hallmark_nr_cd90_refseq.prot_taxids.mmseqs_fmt.tsv'])
+                        'https://zenodo.org/records/10840546/files/refseq_virus_prot_taxids.mmseqs_fmt.tsv'])
         subprocess.call(['mmseqs', 'createdb', os.path.join(MMSEQS_outdir, 'refseq_virus_prot.fasta'), 
                         os.path.join(MMSEQS_outdir, 'refseq_virus_prot_taxDB')])
         subprocess.call(['mmseqs', 'createtaxdb', os.path.join(MMSEQS_outdir, 'refseq_virus_prot_taxDB'), 

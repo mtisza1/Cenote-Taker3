@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from ntpath import isfile
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -25,6 +26,8 @@ out_dir = sys.argv[7]
 wrap = sys.argv[8]
 
 maxlength = sys.argv[9]
+
+circf = sys.argv[10]
 
 
 if not os.path.isdir(out_dir):
@@ -74,12 +77,22 @@ def fetch_itr(seq, min_len=20, max_len=1000):
     else:
         return ""
 
-
-
+circ_ids = []
+if os.path.isfile(circf):
+    with open(circf, "r") as circs:
+        for line in circs:
+            circ_ids.append(line.strip())
 
 terminal_r_list = []
 for seq_record in SeqIO.parse(fasta_file, "fasta"):
-    dtr_seq = fetch_dtr(str(seq_record.seq))
+    fmt_desc = " ".join(seq_record.description.split(" ")[1:])
+    if circ_ids:
+        if fmt_desc in circ_ids:
+            dtr_seq = "User-provided circular"
+        else:
+            dtr_seq = None
+    else:
+        dtr_seq = fetch_dtr(str(seq_record.seq))
 
     if not dtr_seq or len(seq_record) > float(maxlength):
         dtr_seq = "NA"
@@ -89,7 +102,7 @@ for seq_record in SeqIO.parse(fasta_file, "fasta"):
     if not itr_seq:
         itr_seq = "NA"
 
-    if not dtr_seq == "NA" and wrap.lower() == "true":
+    if not dtr_seq == "NA" and not dtr_seq == "User-provided circular" and wrap.lower() == "true":
         print(f">{seq_record.id}", file = open(output_allf, "a"))
         print(seq_record.seq[:-len(dtr_seq)], file = open(output_allf, "a"))
 

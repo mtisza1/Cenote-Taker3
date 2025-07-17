@@ -160,7 +160,7 @@ for name, group in grouped_df:
     else:
         dtr_seqf = "None"
     
-    if all(c in "ATCG" for c in dtr_seqf):
+    if all(c in "ATCG" for c in dtr_seqf) or dtr_seqf == "User-provided circular":
         end_type = "DTR"
     else:
         end_type = "None"

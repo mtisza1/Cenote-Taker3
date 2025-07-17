@@ -53,7 +53,7 @@ Image of example genome map:
 
 **Most recent versions**
 
-Cenote-Taker 3 scripts:   `v3.4.0`
+Cenote-Taker 3 scripts:   `v3.4.1`
 Cenote-Taker 3 Databases: `v3.1.1`
 
 **This should work on MacOS and Linux**

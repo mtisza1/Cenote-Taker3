@@ -281,6 +281,12 @@ cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T --reads my_reads/*
 
 `Cenote-Taker 3` is under active development, so please open an issue if anything seems unusual or any errors occur. It's likely that I've not tested every parameter combination, and bugs will be a simple fix.
 
-### To-do list
+### Citation
 
--   instructions for manual curation -\> GenBank deposit of `Cenote-Taker 3` output
+
+Cenote-Taker 3 for Fast and Accurate Virus Discovery and Annotation of the Virome.
+
+Michael J. Tisza, Joseph F. Petrosino, Sara J. Javornik Cregeen
+
+doi: [https://doi.org/10.1101/2025.08.20.671380](https://www.biorxiv.org/content/10.1101/2025.08.20.671380v1.full)
+

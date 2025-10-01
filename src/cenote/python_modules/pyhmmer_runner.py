@@ -33,8 +33,17 @@ if not os.path.isdir(out_dir):
 
 starttime = time.perf_counter()
 
+## Load HMM database once and share across workers
+## based on code from https://github.com/althonos/pyhmmer/issues/27#issuecomment-1713131288
+hmm_profiles = []
+hmm_lengths = {}
+with pyhmmer.plan7.HMMFile(which_DB) as hmm_file:
+    for hmm in hmm_file:
+        hmm_lengths[hmm.name.decode()] = len(hmm.consensus)
+        hmm_profiles.append(hmm)
+
 def hmmscanner(seqs):
-    scanout = list(hmmscan(pyhmmer.easel.SequenceFile(seqs, digital=True), pyhmmer.plan7.HMMFile(which_DB)))
+    scanout = list(hmmscan(pyhmmer.easel.SequenceFile(seqs, digital=True), hmm_profiles))
     return scanout
 
 
@@ -50,13 +59,6 @@ for splitAA in os.listdir(input_dir):
 if not splitAA_list:
     print(f"{os.path.basename(__file__)}: no files found for pyhmmer in " + str(input_dir))
     exit
-
-## get lengths of each hmm
-## based on code from https://github.com/althonos/pyhmmer/issues/27#issuecomment-1713131288
-hmm_lengths = {}
-with pyhmmer.plan7.HMMFile(which_DB) as hmm_file:
-    for hmm in hmm_file:
-        hmm_lengths[hmm.name.decode()] = len(hmm.consensus)
 
 hmmscan_list = []
 with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:

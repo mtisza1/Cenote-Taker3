@@ -18,6 +18,7 @@ import pyhmmer
 from pyhmmer import hmmscan as hmmscan
 import pandas as pd
 import multiprocessing as mp
+import multiprocessing.pool as mppool
 import time
 from pathlib import Path
 from typing import List, Tuple, Iterator
@@ -146,7 +147,7 @@ hmmscan_list = []
 # Process large files in parallel (one file per worker)
 if large_files:
     if optimal_threads > 1:
-        with mp.pool.ThreadPool(optimal_threads) as pool:
+        with mppool.ThreadPool(optimal_threads) as pool:
             for result in pool.imap_unordered(process_sequences, large_files):
                 hmmscan_list.extend(result)
     else:
@@ -161,7 +162,7 @@ if small_files:
     batches = [small_files[i:i + batch_size] for i in range(0, len(small_files), batch_size)]
     
     if optimal_threads > 1 and len(batches) > 1:
-        with mp.pool.ThreadPool(min(optimal_threads, len(batches))) as pool:
+        with mppool.ThreadPool(min(optimal_threads, len(batches))) as pool:
             for result in pool.imap_unordered(batch_process_small_files, batches):
                 hmmscan_list.extend(result)
     else:

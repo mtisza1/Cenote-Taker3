@@ -19,6 +19,8 @@ which_DB = sys.argv[3]
 
 CPUcount = sys.argv[4]
 
+CPUcount = int(CPUcount)
+
 evalue_cut = sys.argv[5]
 
 evalue_cut = float(evalue_cut)
@@ -32,6 +34,12 @@ if not os.path.isdir(out_dir):
 
 
 starttime = time.perf_counter()
+
+# max 4 pools launched
+if CPUcount > 4:
+    pool_count = 4
+else:
+    pool_count = CPUcount
 
 def hmmscanner(seqs):
     scanout = list(hmmscan(pyhmmer.easel.SequenceFile(seqs, digital=True), pyhmmer.plan7.HMMFile(which_DB)))
@@ -59,7 +67,7 @@ with pyhmmer.plan7.HMMFile(which_DB) as hmm_file:
         hmm_lengths[hmm.name.decode()] = len(hmm.consensus)
 
 hmmscan_list = []
-with multiprocessing.pool.ThreadPool(int(CPUcount)) as pool:
+with multiprocessing.pool.ThreadPool(int(pool_count)) as pool:
     for alignments in pool.map(hmmscanner, splitAA_list):
         for model in alignments:
             quer1 = model.query.name.decode()

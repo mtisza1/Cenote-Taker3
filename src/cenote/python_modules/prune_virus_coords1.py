@@ -154,8 +154,8 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     #we are duplicating the last row of the df to handle a trailing + chunk (w/ no y=0 intercept to close the chunk)
     #merged_df = merged_df.append(merged_df[-1:])
     merged_df = pd.concat([merged_df, merged_df[-1:]])
-    #now need to make it read actual last stop position (this os not rounded per window like the other coords)
-    merged_df = merged_df.replace(merged_df['Position stop'].iloc[-1],(total_len+1))
+    #now need to make it read actual last stop position (this is not rounded per window like the other coords)
+    merged_df.loc[merged_df.index[-1], 'Position stop'] = (total_len + 1)
 
     #now let's get the coordinates for the > 0 'chunks'
     #iterate over for true hit testing
@@ -172,16 +172,25 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
 
     def right_cutoff(position, groupframe):
         calced_end =  int(position)
-        rbisect_pos = bisect.bisect(list(groupframe['gene_stop']), calced_end)
-        rchunk_cutoff = list(groupframe['gene_stop'])[rbisect_pos-1]
+        gstop = sorted(list(groupframe['gene_stop']))
+        if len(gstop) == 0:
+            return calced_end
+        rbisect_pos = bisect.bisect(gstop, calced_end)
+        if rbisect_pos == 0:
+            # position lies before the first gene; clamp to the first gene_stop
+            return gstop[0]
+        rchunk_cutoff = gstop[rbisect_pos-1]
         return rchunk_cutoff
 
     def left_cutoff(position, groupframe):
         calced_start =  int(position)
-        lbisect_pos = bisect.bisect(list(groupframe['gene_start']), calced_start)
-        if lbisect_pos >= len(list(groupframe['gene_start'])):
-             lbisect_pos = len(list(groupframe['gene_start'])) - 1
-        lchunk_cutoff = list(groupframe['gene_start'])[lbisect_pos]
+        gstart = sorted(list(groupframe['gene_start']))
+        if len(gstart) == 0:
+            return calced_start
+        lbisect_pos = bisect.bisect(gstart, calced_start)
+        if lbisect_pos >= len(gstart):
+             lbisect_pos = len(gstart) - 1
+        lchunk_cutoff = gstart[lbisect_pos]
         return lchunk_cutoff
 
     ddf_list = []
@@ -217,19 +226,21 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
         #3. for a trailing chunk
         if row1['+/- to the right'] == '+' and \
             row1["Position start"] != 0 and \
-            row1["Position stop"] == (total_len + 1):
+            row2["Position stop"] == (total_len + 1):
                 
                 ddf = ["C" + str(i1), 
                        left_cutoff(row1["Window midpoint"], group), 
                        row2["Position stop"]]
                 ddf_list.append(ddf)
 
-        #4. for graphs with no leading and no trailing chunk (for graphs with no y = 0 intercept -> this is is
-        #a differently-defined statemnt below b/c the empty file gets appended w/ stuff above from older files when
-        #it's in the loop, ALSO the criterion gets fulfilled by contained cunks which means duplicate csv rows for chunks (defined diffrently to specifiy the rules)
-        if merged_df.iloc[0,1] == '+' and \
-            merged_df.iloc[0,2] == 0 and \
-            merged_df.iloc[0,3] == (total_len + 1): #if first column last(2nd row) == last -1 then its one chunk
+        #4. for graphs with no leading and no trailing chunk (no y = 0 intercept across entire contig)
+        # Trigger only if there are truly no zero-crossings and the smoothed signal is non-negative everywhere
+        # with some positive evidence. This prevents spurious whole-contig chunks from early smoothing artifacts.
+        if (len(idx) == 0) and \
+           (merged_df.iloc[0,1] == '+') and \
+           (merged_df.iloc[0,2] == 0) and \
+           (np.min(smoth) >= 0) and \
+           (np.max(smoth) > 0):
                 rep_list = [('C0', '0', (total_len+1))]
                 ddf_list = rep_list
         else:

@@ -53,7 +53,7 @@ Image of example genome map:
 
 **Most recent versions**
 
-Cenote-Taker 3 scripts:   `v3.4.1`
+Cenote-Taker 3 scripts:   `v3.4.2`
 Cenote-Taker 3 Databases: `v3.1.1`
 
 **This should work on MacOS and Linux**
@@ -73,11 +73,11 @@ Cenote-Taker 3 Databases: `v3.1.1`
 **macOS** (specify `osx-64` platform regardless of which chip you have)
 *I'm also noticing a macOS-specific issue with newer `mmseqs` versions, so use `mmseqs2=15.6f452`*
 
-`mamba create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.1 mmseqs2=15.6f452`
+`mamba create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.2 mmseqs2=15.6f452`
 
 **linux**
 
-`mamba create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.1`
+`mamba create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.2`
 
 <details>
 
@@ -85,11 +85,11 @@ Cenote-Taker 3 Databases: `v3.1.1`
 
   **macOS** (specify `osx-64` platform regardless of which chip you have)
 
-  `conda create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.1 mmseqs2=15.6f452`
+  `conda create --platform osx-64 -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.2 mmseqs2=15.6f452`
 
   **linux**
 
-  `conda create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.1`
+  `conda create -n ct3_env -c conda-forge -c bioconda cenote-taker3=3.4.2`
 
 </details>
 

@@ -154,8 +154,13 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     #we are duplicating the last row of the df to handle a trailing + chunk (w/ no y=0 intercept to close the chunk)
     #merged_df = merged_df.append(merged_df[-1:])
     merged_df = pd.concat([merged_df, merged_df[-1:]])
-    #now need to make it read actual last stop position (this is not rounded per window like the other coords)
-    merged_df.loc[merged_df.index[-1], 'Position stop'] = (total_len + 1)
+    # reset index so the duplicated last row has a unique index (prevents duplicate chunk IDs)
+    merged_df = merged_df.reset_index(drop=True)
+    #now need to make it read actual last stop position (this os not rounded per window like the other coords)
+    merged_df.iloc[-1, merged_df.columns.get_loc('Position stop')] = (total_len + 1)
+    merged_file = os.path.join(out_dir1, name + ".merged_windows.tsv")
+
+    merged_df.to_csv(merged_file, sep = "\t", index = False)
 
     #now let's get the coordinates for the > 0 'chunks'
     #iterate over for true hit testing
@@ -205,10 +210,20 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
                        row1["Position start"], 
                        right_cutoff(row2["Window midpoint"], group)]
                 ddf_list.append(ddf)
-        #for a contained chunk
-        if row1['+/- to the right'] == '+' and \
+        #3. for a trailing chunk
+        elif row1['+/- to the right'] == '+' and \
             row1["Position start"] != 0 and \
-            row1["Position stop"] != (total_len + 1):
+            row2["Position stop"] == (total_len + 1):
+                
+                ddf = ["C" + str(i1), 
+                       left_cutoff(row1["Window midpoint"], group), 
+                       row2["Position stop"]]
+                ddf_list.append(ddf)
+        #for a contained chunk (not trailing)
+        elif row1['+/- to the right'] == '+' and \
+            row1["Position start"] != 0 and \
+            row1["Position stop"] != (total_len + 1) and \
+            row2["Position stop"] != (total_len + 1):
                 ##making sure that the adjusted coordinates actually make sense
                 leco = left_cutoff(row1["Window midpoint"], group)
 
@@ -223,19 +238,9 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
 
                 ddf_list.append(ddf)
 
-        #3. for a trailing chunk
-        if row1['+/- to the right'] == '+' and \
-            row1["Position start"] != 0 and \
-            row2["Position stop"] == (total_len + 1):
-                
-                ddf = ["C" + str(i1), 
-                       left_cutoff(row1["Window midpoint"], group), 
-                       row2["Position stop"]]
-                ddf_list.append(ddf)
-
-        #4. for graphs with no leading and no trailing chunk (no y = 0 intercept across entire contig)
-        # Trigger only if there are truly no zero-crossings and the smoothed signal is non-negative everywhere
-        # with some positive evidence. This prevents spurious whole-contig chunks from early smoothing artifacts.
+        #4. for graphs with no leading and no trailing chunk (for graphs with no y = 0 intercept -> this is is
+        #a differently-defined statemnt below b/c the empty file gets appended w/ stuff above from older files when
+        #it's in the loop, ALSO the criterion gets fulfilled by contained cunks which means duplicate csv rows for chunks (defined diffrently to specifiy the rules)
         if (len(idx) == 0) and \
            (merged_df.iloc[0,1] == '+') and \
            (merged_df.iloc[0,2] == 0) and \

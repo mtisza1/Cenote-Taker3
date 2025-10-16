@@ -80,7 +80,7 @@ def cenotetaker3():
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.4.2"
+    __version__ = "3.4.3"
 
     Def_CPUs = os.cpu_count()
 

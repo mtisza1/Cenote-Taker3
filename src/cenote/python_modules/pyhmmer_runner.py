@@ -64,17 +64,17 @@ if not splitAA_list:
 hmm_lengths = {}
 with pyhmmer.plan7.HMMFile(which_DB) as hmm_file:
     for hmm in hmm_file:
-        hmm_lengths[hmm.name.decode()] = len(hmm.consensus)
+        hmm_lengths[hmm.name] = len(hmm.consensus)
 
 hmmscan_list = []
 with multiprocessing.pool.ThreadPool(int(pool_count)) as pool:
     for alignments in pool.map(hmmscanner, splitAA_list):
         for model in alignments:
-            quer1 = model.query.name.decode()
+            quer1 = model.query.name
             pos = quer1.rfind("_")
             contig = quer1[:pos]
             for hit in model:
-                target_name = hit.name.decode()
+                target_name = hit.name
                 target_acc = hit.accession
                 full_seq_evalue = hit.evalue
                 seq_pvalue = hit.pvalue      
@@ -82,7 +82,7 @@ with multiprocessing.pool.ThreadPool(int(pool_count)) as pool:
                     hit.best_domain.alignment.hmm_sequence
                 ) - hit.best_domain.alignment.hmm_sequence.count(".")
                 hmm_coverage = (
-                    n_aligned_positions / hmm_lengths[hit.best_domain.alignment.hmm_name.decode()]
+                    n_aligned_positions / hmm_lengths[hit.best_domain.alignment.hmm_name]
                 )
                 
                 hmmscan_list.append([quer1, contig, target_name, full_seq_evalue, seq_pvalue, 

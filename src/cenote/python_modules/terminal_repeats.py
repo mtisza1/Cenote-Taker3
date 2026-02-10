@@ -127,7 +127,7 @@ hall_dt = pd.read_csv(orig_hallmark_tab, sep = "\t", header = 0)
 full_dt = pd.merge(hall_dt, terminal_df, on = 'contig')
 
 
-keep_dt = full_dt[(full_dt['dtr_seq'] != "NA" 
+keep_dt = full_dt[((full_dt['dtr_seq'] != "NA") 
         & (full_dt['total_hit_count'] >= int(hall_circ) ) 
         & (full_dt['in_length_contig'] >= int(length_circ) )) 
         | ((full_dt['total_hit_count'] >= int(hall_lin) )

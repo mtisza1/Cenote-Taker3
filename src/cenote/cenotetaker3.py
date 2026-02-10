@@ -80,7 +80,7 @@ def cenotetaker3():
 
     parentpath = Path(pathname).parents[1]
 
-    __version__ = "3.4.3"
+    __version__ = "3.4.4"
 
     Def_CPUs = os.cpu_count()
 
@@ -398,9 +398,9 @@ def cenotetaker3():
     
     # check pyhmmer version
     if int(pyhmmer.__version__.split(".")[0]) == 0:
-        if int(pyhmmer.__version__.split(".")[1]) < 11:
-            logger.warning(f"pyhmmer version must be >= 0.11.0.")
-            logger.warning(f"Try: mamba install bioconda::pyhmmer=0.11.0")
+        if int(pyhmmer.__version__.split(".")[1]) < 12:
+            logger.warning(f"pyhmmer version must be >= 0.12.0.")
+            logger.warning(f"Try: mamba install bioconda::pyhmmer=0.12.0")
             logger.warning(f"Your version is {pyhmmer.__version__}. Exiting.")
             sys.exit()
 

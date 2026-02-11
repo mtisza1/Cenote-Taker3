@@ -86,7 +86,7 @@ try:
 
     sam_df = sam_df[['contig', 'chunk_name', 'coverage']]
 
-    sam_df['chunk_name'] = sam_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+    sam_df['chunk_name'] = sam_df['chunk_name'].fillna("NaN")
 except Exception as e:
     sam_df = pd.DataFrame()
 
@@ -95,8 +95,8 @@ except Exception as e:
 ## merge all files
 merge_df = pd.merge(main_annot_df, name_df, on = "contig", how = "left")
 
-tax_df['chunk_name'] = tax_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
-merge_df['chunk_name'] = merge_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+tax_df['chunk_name'] = tax_df['chunk_name'].fillna("NaN")
+merge_df['chunk_name'] = merge_df['chunk_name'].fillna("NaN")
 
 merge_df = pd.merge(merge_df, tax_df, on = ["contig", "chunk_name"], how = "left")
 merge_df = pd.merge(merge_df, gcode_df, on = "contig", how = "left")
@@ -106,7 +106,7 @@ if not sam_df.empty:
 else:
     merge_df['coverage'] = "NaN"
 
-merge_df['taxon'] = merge_df['taxon'].infer_objects(copy=False).fillna("unclassified virus")
+merge_df['taxon'] = merge_df['taxon'].fillna("unclassified virus")
 
 
 ## get descriptions from fastas
@@ -120,8 +120,8 @@ except:
 
 
 ## ensure merge gets same data type
-desc_df['chunk_name'] = desc_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
-merge_df['chunk_name'] = merge_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+desc_df['chunk_name'] = desc_df['chunk_name'].fillna("NaN")
+merge_df['chunk_name'] = merge_df['chunk_name'].fillna("NaN")
 
 
 org_info_df = pd.merge(merge_df, desc_df, on = ["contig", "chunk_name"], how = "left")
@@ -177,7 +177,7 @@ summary_df = pd.DataFrame(summary_list, columns=['contig', 'input_name', 'organi
                                                  'gcode', 'avg_read_depth'])
 
 
-summary_df['virus_seq_length'] = summary_df['virus_seq_length'].infer_objects(copy=False).fillna(0)
+summary_df['virus_seq_length'] = summary_df['virus_seq_length'].fillna(0)
 
 summary_df = summary_df.astype(dtype= {"virus_seq_length": "int64"})
 

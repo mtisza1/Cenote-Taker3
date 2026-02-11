@@ -26,7 +26,7 @@ if not os.path.isdir(out_dir):
 # load gene/contig table
 gene_contig_df = pd.read_csv(gene_contig_file, sep = "\t")
 
-gene_contig_df['chunk_name'] = gene_contig_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+gene_contig_df['chunk_name'] = gene_contig_df['chunk_name'].fillna("NaN")
 
 ## quick_df is for adding chunk info to trnascan table via merge
 quick_df = gene_contig_df[['contig', 'chunk_name', 'chunk_length', 
@@ -175,7 +175,7 @@ ORF_df.to_csv(ORF_list_out, sep = "\t", index = False, header = False)
 
 
 ## need a chunk value for all viruses to properly group
-merged_df['chunk_name'] = merged_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+merged_df['chunk_name'] = merged_df['chunk_name'].fillna("NaN")
 
 chunk_grouped_df = merged_df.groupby(['contig', 'chunk_name'], dropna = False)
 

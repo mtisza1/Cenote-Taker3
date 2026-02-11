@@ -63,7 +63,9 @@ names_dt = pd.read_csv(names_file, sep = "\t", names=['contig', 'original_name']
 
 merge_dt = pd.merge(hits_dt, names_dt, on = 'contig', how = 'outer')
 
-merge_dt = merge_dt.infer_objects(copy=False).fillna(0)
+for col in ['virion_hit_count', 'rep_hit_count', 'rdrp_hit_count']:
+    if col in merge_dt.columns:
+        merge_dt[col] = merge_dt[col].fillna(0).astype(int)
 
 
 

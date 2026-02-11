@@ -36,7 +36,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     count=0
     count_start=-sliiiiiide_to_the_right
 
-    contig_length1 = group['contig_length'].agg(pd.Series.mode)
+    contig_length1 = group['contig_length'].mode()
     ####
 
     ## make the score list based on annotations
@@ -85,9 +85,7 @@ def prune_chunks(name, group, out_dir1, hallmark_arg):
     x = df_0['Window']
     y = np.array(df_0['Score'])
     l = df_0['Window'].count()
-    df_empty = pd.DataFrame(index=range(l),columns=range(1))
-    for col in df_empty.columns:
-        df_empty[col].values[:] = 0
+    df_empty = pd.DataFrame(0, index=range(l), columns=range(1))
 
     zero=df_empty[0]
 

@@ -22,7 +22,7 @@ num_seqs = sum( 1 for _ in enumerate(SeqIO.parse(in_fna, "fasta")))
 
 gene_df = pd.read_csv(genes_sum, sep = '\t', header = 0)
 
-gene_df['chunk_name'] = gene_df['chunk_name'].infer_objects(copy=False).fillna("NaN")
+gene_df['chunk_name'] = gene_df['chunk_name'].fillna("NaN")
 
 gene_df['contig_chunk'] = gene_df['contig'] + "@" + gene_df['chunk_name']
 

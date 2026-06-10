@@ -285,7 +285,9 @@ cenotetaker3 -c my_metagenome_contigs.fna -r my_meta_ct3 -p T --reads my_reads/*
 
 Cenote-Taker 3 for Fast and Accurate Virus Discovery and Annotation of the Virome.
 
-Michael J. Tisza, Joseph F. Petrosino, Sara J. Javornik Cregeen
+Michael J. Tisza, Arvind Varsani, Joseph F. Petrosino, Sara J. Javornik Cregeen
 
-doi: [https://doi.org/10.1101/2025.08.20.671380](https://www.biorxiv.org/content/10.1101/2025.08.20.671380v1.full)
+Peer Community Journal (2026)
+
+doi: [https://doi.org/10.24072/pcjournal.706](https://doi.org/10.24072/pcjournal.706)
 
